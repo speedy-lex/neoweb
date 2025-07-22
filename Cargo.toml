@@ -12,3 +12,6 @@ opt-level = "z"
 lto = true
 strip = true
 panic = "abort"
+
+[dependencies]
+neonucleus = { git = "https://github.com/speedy-lex/neonucleus-rs" }

@@ -86,7 +86,14 @@
         }
 
         const importObject = {
-            neoweb_console: { set_cell: wasmSetCell },
+            neoweb_console: {
+                set_cell: wasmSetCell,
+            },
+            neoweb_utils: {
+                get_time: () => {
+                    Date.now() / 1000
+                }
+            },
         };
         let wasm = undefined;
 
