@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Neoweb</title>
+    <style>
+        @font-face {
+            font-family: 'unscii-16';
+            src: url('./unscii-16-full.woff') format('woff'), /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+                 url('./unscii-16-full.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
+        }
+        #console {
+            display: grid;
+            grid-template-columns: repeat(80, 1fr);
+            font-size: calc(100vw * 2 / 80);
+            grid-template-rows: repeat(25, 1fr);
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            white-space: nowrap;
+            background: black;
+            color: lime;
+            font-family: 'unscii-16';
+            image-rendering: pixelated;
+        }
+        .cell {
+            display: flex;
+            overflow: visible;
+            min-width: 0;
+            min-height: 0;
+
+            /* Optional: prevent line breaks */
+            white-space: nowrap;
+            line-height: 1;
+        }
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="console"></div>
+
+    <script>
+        const console = document.getElementById("console");
+        for (let i = 0; i < 80 * 25; i++) {
+            const cell = document.createElement("div");
+            cell.classList.add("cell");
+            console.appendChild(cell);
+        }
+
+        function setCell(x, y, val) {
+            const i = x + 80 * y;
+            console.children[i].innerText = val
+        }
+    </script>
+    <script type="module">
+        function wasmSetCell(x, y, val) {
+            const t = String.fromCodePoint(val);
+            setCell(x, y, t);
+        }
+
+        function tickComputer() {
+            try {
+                wasm.tick()
+            } catch(e) {
+                if (e instanceof WebAssembly.RuntimeError && e.message.includes("unreachable")) {
+                    alert("panic: " + e.message);
+                } else {
+                    alert(e);
+                }
+            }
+            requestAnimationFrame(tickComputer);
+        }
+
+        function runComputer() {
+            try {
+                wasm.init();
+            } catch(e) {
+                if (e instanceof WebAssembly.RuntimeError && e.message.includes("unreachable")) {
+                    alert("panic: " + e.message);
+                } else {
+                    alert(e);
+                }
+            }
+            requestAnimationFrame(tickComputer);
+        }
+
+        const importObject = {
+            neoweb_console: { set_cell: wasmSetCell },
+        };
+        let wasm = undefined;
+
+        const response = WebAssembly.instantiateStreaming(fetch("neoweb.wasm"), importObject).then(
+            (obj) => {wasm = obj.instance.exports; runComputer()},
+        );
+    </script>
+</body>
+</html>
