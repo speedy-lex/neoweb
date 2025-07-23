@@ -9,13 +9,14 @@
             src: url('./unscii-16-full.woff') format('woff'), /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
                  url('./unscii-16-full.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
         }
-        #console {
+        .console {
             display: grid;
-            grid-template-columns: repeat(80, 1fr);
-            font-size: calc(100vw * 2 / 80);
-            grid-template-rows: repeat(25, 1fr);
+            container-type: inline-size;
+            grid-template-columns: repeat(var(--cols), 1fr);
+            grid-template-rows: repeat(var(--rows), 1fr);
+            font-size: calc(200cqi / var(--cols));
             width: 100%;
-            aspect-ratio: 16 / 10;
+            aspect-ratio: calc(var(--cols) / var(--rows) / 2);
             white-space: nowrap;
             background: black;
             color: lime;
@@ -28,7 +29,6 @@
             min-width: 0;
             min-height: 0;
 
-            /* Optional: prevent line breaks */
             white-space: nowrap;
             line-height: 1;
         }
@@ -38,25 +38,38 @@
     </style>
 </head>
 <body>
-    <div id="console"></div>
+    <div id="container"></div>
 
     <script>
-        const console = document.getElementById("console");
-        for (let i = 0; i < 80 * 25; i++) {
-            const cell = document.createElement("div");
-            cell.classList.add("cell");
-            console.appendChild(cell);
+        let screens = [];
+
+        function createScreen(element, cols, rows) {
+            let child = document.createElement("div");
+            child.classList.add("console");
+            child.style = "--cols:" + cols + ";--rows:" + rows + ";"
+            for (let i = 0; i < cols * rows; i++) {
+                const cell = document.createElement("div");
+                cell.classList.add("cell");
+                child.appendChild(cell);
+            }
+            element.appendChild(child);
+            screens.push({
+                element: child,
+                cols: cols,
+                rows: rows,
+            });
+            return screens.length - 1;
         }
 
-        function setCell(x, y, val) {
+        function setCell(id, x, y, val) {
             const i = x + 80 * y;
-            console.children[i].innerText = val
+            screens[id].element.children[i].innerText = val
         }
     </script>
     <script type="module">
-        function wasmSetCell(x, y, val) {
+        function wasmSetCell(id, x, y, val) {
             const t = String.fromCodePoint(val);
-            setCell(x, y, t);
+            setCell(id, x, y, t);
         }
 
         function tickComputer() {
@@ -96,6 +109,7 @@
             },
         };
         let wasm = undefined;
+        createScreen(document.getElementById("container"), 80, 25);
 
         const response = WebAssembly.instantiateStreaming(fetch("neoweb.wasm"), importObject).then(
             (obj) => {wasm = obj.instance.exports; runComputer()},
