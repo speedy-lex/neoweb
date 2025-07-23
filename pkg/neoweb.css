@@ -1,0 +1,31 @@
+@font-face {
+    font-family: 'unscii-16';
+    src: url('./unscii-16-full.woff') format('woff'), /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+            url('./unscii-16-full.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
+}
+.console {
+    display: grid;
+    container-type: inline-size;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    grid-template-rows: repeat(var(--rows), 1fr);
+    font-size: calc(200cqi / var(--cols));
+    width: 100%;
+    aspect-ratio: calc(var(--cols) / var(--rows) / 2);
+    white-space: nowrap;
+    background: black;
+    color: lime;
+    font-family: 'unscii-16';
+    image-rendering: pixelated;
+}
+.cell {
+    display: flex;
+    overflow: visible;
+    min-width: 0;
+    min-height: 0;
+
+    white-space: nowrap;
+    line-height: 1;
+}
+body {
+    margin: 0;
+}
