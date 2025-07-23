@@ -1,5 +1,3 @@
-use neonucleus::ffi::nn_scrchr_t;
-
 use crate::context::{get_context, init_random};
 
 mod context;
@@ -16,7 +14,6 @@ fn set_cell(id: usize, x: usize, y: usize, ch: char) {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn init() {
-    nn_scrchr_t
     init_random();
     let universe = unsafe { neonucleus::ffi::nn_newUniverse(get_context()) };
     let addr = format!("{universe:p}");
