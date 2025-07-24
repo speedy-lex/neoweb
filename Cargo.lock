@@ -38,6 +38,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b8e56985ec62d17e9c1001dc89c88ecd7dc08e47eba5ec7c29c7b5eeecde967"
 
 [[package]]
+name = "cc"
+version = "1.2.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "deec109607ca693028562ed836a5f1c4b8bd77755c4e132fc5ce11b0b6211ae7"
+dependencies = [
+ "shlex",
+]
+
+[[package]]
 name = "cexpr"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -107,6 +116,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
+name = "lua53-sys"
+version = "0.1.0"
+source = "git+https://github.com/speedy-lex/lua53-sys#b0062a0d50ba0812596e7830024fa4b9376c3c78"
+dependencies = [
+ "bindgen",
+ "cc",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -121,7 +139,7 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 [[package]]
 name = "neonucleus"
 version = "0.1.0"
-source = "git+https://github.com/speedy-lex/neonucleus-rs#d51faf10528fa96081eda26cd37afec9b4429489"
+source = "git+https://github.com/speedy-lex/neonucleus-rs#6e736aceb31ccf3da970c4571cfe258f6e1e836c"
 dependencies = [
  "bindgen",
 ]
@@ -130,6 +148,7 @@ dependencies = [
 name = "neoweb"
 version = "0.1.0"
 dependencies = [
+ "lua53-sys",
  "neonucleus",
 ]
 
@@ -145,9 +164,9 @@ dependencies = [
 
 [[package]]
 name = "prettyplease"
-version = "0.2.35"
+version = "0.2.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "061c1221631e079b26479d25bbf2275bfe5917ae8419cd7e34f13bfc2aa7539a"
+checksum = "ff24dfcda44452b9816fff4cd4227e1bb73ff5a2f1bc1105aa92fb8565ce44d2"
 dependencies = [
  "proc-macro2",
  "syn",

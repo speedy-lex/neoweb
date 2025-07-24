@@ -2,7 +2,7 @@ let screens = [];
 
 function createScreen(element, cols, rows) {
     let child = document.createElement("div");
-    child.classList.add("console");
+    child.classList.add("screen");
     child.style = "--cols:" + cols + ";--rows:" + rows + ";"
     for (let i = 0; i < cols * rows; i++) {
         const cell = document.createElement("div");
