@@ -118,7 +118,7 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 [[package]]
 name = "lua53-sys"
 version = "0.1.0"
-source = "git+https://github.com/speedy-lex/lua53-sys#b0062a0d50ba0812596e7830024fa4b9376c3c78"
+source = "git+https://github.com/speedy-lex/lua53-sys#6d72d4c11bb1a0389a9f40af2a24306cf319bd66"
 dependencies = [
  "bindgen",
  "cc",

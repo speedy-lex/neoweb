@@ -38,6 +38,11 @@ const importObject = {
             Date.now() / 1000
         }
     },
+    libc: {
+        get_unix_time_s: () => {
+            Math.floor(Date.now() / 1000)
+        }
+    }
 };
 let wasm = undefined;
 createScreen(document.getElementById("container"), 80, 25);
