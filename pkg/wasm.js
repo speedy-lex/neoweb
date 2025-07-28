@@ -10,6 +10,7 @@ function tickComputer() {
         if (e instanceof WebAssembly.RuntimeError && e.message.includes("unreachable")) {
             alert("panic: " + e.message);
         } else {
+            console.dir(e);
             alert(e);
         }
     }
