@@ -3,4 +3,4 @@ cargo +nightly build --release #-Z build-std=core,alloc -Z build-std-features="o
 Remove-Item env:RUSTFLAGS
 # wasm-snip doesnt know about wasm-eh for now
 # wasm-snip target/wasm32-unknown-unknown/release/neoweb.wasm -o pkg/snipped.wasm
-wasm-opt --enable-bulk-memory-opt -Oz --strip-dwarf --vacuum --strip-debug -n target/wasm32-unknown-unknown/release/neoweb.wasm -o pkg/neoweb.wasm
+wasm-opt --enable-bulk-memory-opt --enable-exception-handling -Oz --strip-dwarf --vacuum --strip-debug -n target/wasm32-unknown-unknown/release/neoweb.wasm -o pkg/neoweb.wasm
