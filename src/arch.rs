@@ -1,7 +1,7 @@
 use std::{ffi::c_void, ptr::null_mut};
 
-use lua53_sys::{luaL_loadbufferx, luaL_openlibs, lua_State, lua_close, lua_createtable, lua_getfield, lua_gettop, lua_newstate, lua_pushcclosure, lua_pushlightuserdata, lua_resume, lua_setfield, lua_setglobal, lua_settop, lua_tolstring, lua_touserdata, LUA_OK, LUA_REGISTRYINDEX, LUA_YIELD};
-use neonucleus::ffi::{nn_alloc, nn_architecture, nn_clearError, nn_computer, nn_dealloc, nn_getAllocator, nn_getComputerMemoryTotal, nn_getUniverse, nn_resize, nn_setCError, nn_setError};
+use lua53_sys::{luaL_loadbufferx, luaL_openlibs, lua_State, lua_close, lua_createtable, lua_getfield, lua_gettop, lua_newstate, lua_pushcclosure, lua_pushlightuserdata, lua_pushnumber, lua_pushstring, lua_resume, lua_setfield, lua_setglobal, lua_settop, lua_tolstring, lua_touserdata, LUA_OK, LUA_REGISTRYINDEX, LUA_YIELD};
+use neonucleus::ffi::{nn_alloc, nn_architecture, nn_clearError, nn_computer, nn_dealloc, nn_getAllocator, nn_getComponentAddress, nn_getComponentTable, nn_getComponentType, nn_getComputerMemoryTotal, nn_getUniverse, nn_getUptime, nn_iterComponent, nn_resize, nn_setCError, nn_setError};
 
 pub const ARCH_TABLE: nn_architecture = nn_architecture {
     userdata: null_mut(),
@@ -58,6 +58,34 @@ unsafe extern "C" fn computer_clear_error(lua: *mut lua_State) -> i32 {
     unsafe { nn_clearError((*state).computer) };
     0
 }
+unsafe extern "C" fn computer_uptime(lua: *mut lua_State) -> i32 {
+    let state = unsafe {
+        get_state(lua)
+    };
+    unsafe { lua_pushnumber(lua, nn_getUptime((*state).computer)) };
+    1
+}
+unsafe extern "C" fn component_list(lua: *mut lua_State) -> i32 {
+    let state = unsafe {
+        get_state(lua)
+    };
+    unsafe { lua_createtable(lua, 0, 10) };
+    let mut iter = 0;
+    let list = unsafe { lua_gettop(lua) };
+    loop {
+        let component = unsafe { nn_iterComponent((*state).computer, &raw mut iter) };
+        if component.is_null() {
+            break;
+        }
+        let table = unsafe { nn_getComponentTable(component) };
+        let addr = unsafe { nn_getComponentAddress(component) };
+        let ty = unsafe { nn_getComponentType(table) };
+
+        unsafe { lua_pushstring(lua, ty) };
+        unsafe { lua_setfield(lua, list, addr) };
+    }
+    1
+}
 fn load_env(lua: *mut lua_State) {
     unsafe { lua_createtable(lua, 0, 10) };
     let computer = unsafe { lua_gettop(lua) };
@@ -73,8 +101,8 @@ fn load_env(lua: *mut lua_State) {
     // lua_setfield(lua, computer, "address");
     // lua_pushcfunction(lua, testLuaArch_computer_tmpAddress);
     // lua_setfield(lua, computer, "tmpAddress");
-    // lua_pushcfunction(lua, testLuaArch_computer_uptime);
-    // lua_setfield(lua, computer, "uptime");
+    unsafe { lua_pushcclosure(lua, Some(computer_uptime), 0) };
+    unsafe { lua_setfield(lua, computer, c"uptime".as_ptr()) };
     // lua_pushcfunction(lua, testLuaArch_computer_beep);
     // lua_setfield(lua, computer, "beep");
     // lua_pushcfunction(lua, testLuaArch_computer_energy);
@@ -106,6 +134,24 @@ fn load_env(lua: *mut lua_State) {
     // lua_pushcfunction(lua, testLuaArch_computer_setState);
     // lua_setfield(lua, computer, "setState");
     unsafe { lua_setglobal(lua, c"computer".as_ptr()) };
+
+    unsafe { lua_createtable(lua, 0, 10) };
+    let component = unsafe { lua_gettop(lua) };
+    unsafe { lua_pushcclosure(lua, Some(component_list), 0) };
+    unsafe { lua_setfield(lua, component, c"list".as_ptr()) };
+    // lua_pushcfunction(L, testLuaArch_component_doc);
+    // lua_setfield(L, component, "doc");
+    // lua_pushcfunction(L, testLuaArch_component_fields);
+    // lua_setfield(L, component, "fields");
+    // lua_pushcfunction(L, testLuaArch_component_methods);
+    // lua_setfield(L, component, "methods");
+    // lua_pushcfunction(L, testLuaArch_component_invoke);
+    // lua_setfield(L, component, "invoke");
+    // lua_pushcfunction(L, testLuaArch_component_slot);
+    // lua_setfield(L, component, "slot");
+    // lua_pushcfunction(L, testLuaArch_component_type);
+    // lua_setfield(L, component, "type");
+    unsafe { lua_setglobal(lua, c"component".as_ptr()) };
 }
 unsafe extern "C" fn setup(computer: *mut nn_computer, _userdata: *mut c_void) -> *mut c_void {
     let alloc = unsafe { nn_getAllocator(nn_getUniverse(computer)) };

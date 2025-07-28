@@ -1,6 +1,6 @@
 use std::ptr::null_mut;
 
-use neonucleus::ffi::{nn_architecture, nn_computer, nn_loadCoreComponentTables, nn_newComputer, nn_tickComputer};
+use neonucleus::ffi::{nn_architecture, nn_computer, nn_getError, nn_loadCoreComponentTables, nn_newComputer, nn_tickComputer};
 
 use crate::{context::{get_context, init_random}};
 use crate::arch::ARCH_TABLE;
@@ -39,5 +39,15 @@ pub extern "C" fn tick() {
     let txt = format!("{}", unsafe { nn_tickComputer(computer) });
     for (i, ch) in txt.chars().enumerate() {
         set_cell(0, i, 0, ch);
+    }
+    let mut error = unsafe { nn_getError(computer) };
+    if !error.is_null() {
+        let mut i = 0;
+        while unsafe { *error } != 0 {
+            set_cell(0, i, 1, unsafe { *error } as u8 as char);
+            error = unsafe { error.add(1) };
+            i += 1;
+        }
+        unreachable!();
     }
 }

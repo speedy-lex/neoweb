@@ -6,29 +6,28 @@ function wasmSetCell(id, x, y, val) {
 function tickComputer() {
     try {
         wasm.tick()
+        requestAnimationFrame(tickComputer);
     } catch(e) {
         if (e instanceof WebAssembly.RuntimeError && e.message.includes("unreachable")) {
-            alert("panic: " + e.message);
+            console.error("panic: " + e.message);
         } else {
             console.dir(e);
-            alert(e);
         }
     }
-    requestAnimationFrame(tickComputer);
 }
 
 function runComputer() {
     try {
         wasm.init();
+        requestAnimationFrame(tickComputer);
     } catch(e) {
         if (e instanceof WebAssembly.RuntimeError && e.message.includes("unreachable")) {
-            alert("panic: " + e.message);
+            console.error("panic: " + e.message);
         } else {
             console.dir(e);
-            alert(e);
         }
+        return;
     }
-    requestAnimationFrame(tickComputer);
 }
 
 const importObject = {
