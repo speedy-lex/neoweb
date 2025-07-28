@@ -3,6 +3,19 @@ function wasmSetCell(id, x, y, val) {
     setCell(id, x, y, t);
 }
 
+async function fetchFileBytes(url) {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const byteArray = new Uint8Array(arrayBuffer);
+
+    return byteArray;
+}
+
 function tickComputer() {
     try {
         wasm.tick()
@@ -16,9 +29,14 @@ function tickComputer() {
     }
 }
 
-function runComputer() {
+async function runComputer() {
     try {
         wasm.init();
+        let eeprom = await fetchFileBytes("luaBios.lua");
+        let buffer = wasm.alloc_eeprom(eeprom.byteLength);
+        const wasmMemory = new Uint8Array(wasm.memory.buffer, buffer, eeprom.byteLength);
+        wasmMemory.set(eeprom);
+        wasm.load_eeprom(buffer, eeprom.byteLength, eeprom.byteLength, 0, 0, 0);
         requestAnimationFrame(tickComputer);
     } catch(e) {
         if (e instanceof WebAssembly.RuntimeError && e.message.includes("unreachable")) {
@@ -49,5 +67,5 @@ let wasm = undefined;
 createScreen(document.getElementById("container"), 80, 25);
 
 const response = WebAssembly.instantiateStreaming(fetch("neoweb.wasm"), importObject).then(
-    (obj) => {wasm = obj.instance.exports; runComputer()},
+    async (obj) => {wasm = obj.instance.exports; await runComputer()},
 );

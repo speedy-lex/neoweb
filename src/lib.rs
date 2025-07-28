@@ -1,6 +1,6 @@
-use std::ptr::null_mut;
+use std::{alloc::{alloc, Layout}, ptr::null_mut};
 
-use neonucleus::ffi::{nn_architecture, nn_computer, nn_getError, nn_loadCoreComponentTables, nn_newComputer, nn_tickComputer};
+use neonucleus::ffi::{nn_addEEPROM, nn_architecture, nn_computer, nn_eepromControl, nn_getError, nn_loadCoreComponentTables, nn_newComputer, nn_tickComputer, nn_veepromOptions, nn_volatileEEPROM};
 
 use crate::{context::{get_context, init_random}};
 use crate::arch::ARCH_TABLE;
@@ -30,6 +30,44 @@ pub extern "C" fn init() {
     let computer = unsafe { nn_newComputer(universe, c"test".as_ptr().cast_mut(), (&ARCH_TABLE as *const nn_architecture).cast_mut(), null_mut(), 1024 * 1024 * 64, 16) };
     assert_ne!(computer, null_mut());
     unsafe { COMPUTER = computer };
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn alloc_eeprom(size: i32) -> *mut u8 {
+    assert!(size <= 1024 * 1024); // no huge allocs
+    assert!(size > 0);
+    unsafe { alloc(Layout::from_size_align(size as usize, 1).unwrap()) }
+}
+#[unsafe(no_mangle)]
+pub extern "C" fn load_eeprom(code: *mut u8, code_size: i32, code_len: i32, data: *mut u8, data_size: i32, data_len: i32) {
+    let computer = unsafe { COMPUTER };
+    assert_ne!(computer, null_mut());
+    assert_ne!(code, null_mut());
+    
+    let opts = nn_veepromOptions {
+        code: code.cast(),
+        len: code_len as usize,
+        size: code_size as usize,
+        data: data.cast(),
+        dataLen: data_len as usize,
+        dataSize: data_size as usize,
+        label: [0; 128],
+        labelLen: 0,
+        isReadOnly: false,
+    };
+
+    let mut ctx = get_context();
+
+    let generic_eeprom = unsafe { nn_volatileEEPROM(&raw mut ctx, opts, nn_eepromControl {
+        readHeatPerByte: 0.0015,
+        writeHeatPerByte: 0.03,
+        readEnergyCostPerByte: 0.001,
+        writeEnergyCostPerByte: 0.05,
+        bytesReadPerTick: 32768.0,
+        bytesWrittenPerTick: 4096.0,
+    }) };
+
+    unsafe { nn_addEEPROM(computer, null_mut(), 0, generic_eeprom) };
 }
 
 #[unsafe(no_mangle)]
