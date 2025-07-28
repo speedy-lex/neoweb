@@ -1,6 +1,6 @@
-use std::{ffi::c_void, ptr::{null, null_mut}};
+use std::{ffi::c_void, ptr::null_mut};
 
-use lua53_sys::{luaL_openlibs, lua_State, lua_close, lua_createtable, lua_getfield, lua_gettop, lua_load, lua_newstate, lua_pushcclosure, lua_pushlightuserdata, lua_resume, lua_setfield, lua_setglobal, lua_settop, lua_tolstring, lua_touserdata, LUA_OK, LUA_REGISTRYINDEX, LUA_YIELD};
+use lua53_sys::{luaL_loadbufferx, luaL_openlibs, lua_State, lua_close, lua_createtable, lua_getfield, lua_gettop, lua_newstate, lua_pushcclosure, lua_pushlightuserdata, lua_resume, lua_setfield, lua_setglobal, lua_settop, lua_tolstring, lua_touserdata, LUA_OK, LUA_REGISTRYINDEX, LUA_YIELD};
 use neonucleus::ffi::{nn_alloc, nn_architecture, nn_clearError, nn_computer, nn_dealloc, nn_getAllocator, nn_getComputerMemoryTotal, nn_getUniverse, nn_resize, nn_setCError, nn_setError};
 
 pub const ARCH_TABLE: nn_architecture = nn_architecture {
@@ -107,20 +107,6 @@ fn load_env(lua: *mut lua_State) {
     // lua_setfield(lua, computer, "setState");
     unsafe { lua_setglobal(lua, c"computer".as_ptr()) };
 }
-struct ReadData {
-    data: &'static [u8],
-    i: usize
-}
-unsafe extern "C" fn one_shot_read(_lua: *mut lua_State, data: *mut c_void, read: *mut usize) -> *const i8 {
-    let data: &mut ReadData = unsafe { &mut *data.cast() };
-    if data.i >= data.data.len() {
-        return null();
-    }
-    let x = &data.data[data.i..];
-    data.i += x.len();
-    unsafe { *read = x.len() };
-    x.as_ptr().cast()
-}
 unsafe extern "C" fn setup(computer: *mut nn_computer, _userdata: *mut c_void) -> *mut c_void {
     let alloc = unsafe { nn_getAllocator(nn_getUniverse(computer)) };
     let state = unsafe { nn_alloc(alloc, size_of::<State>()) }.cast::<State>();
@@ -135,8 +121,7 @@ unsafe extern "C" fn setup(computer: *mut nn_computer, _userdata: *mut c_void) -
     unsafe { lua_setfield(lua, LUA_REGISTRYINDEX, c"archPtr".as_ptr()) };
     unsafe { (*state).lua = lua };
     load_env(lua);
-    let mut reader_data = ReadData { data: LUA_SANDBOX, i: 0 };
-    if unsafe { lua_load(lua, Some(one_shot_read), (&raw mut reader_data).cast(), c"=machine.lua".as_ptr(), c"t".as_ptr()) } != LUA_OK {
+    if unsafe { luaL_loadbufferx(lua, LUA_SANDBOX.as_ptr().cast(), LUA_SANDBOX.len(), c"=machine.lua".as_ptr(), c"t".as_ptr()) } != LUA_OK {
         unsafe { lua_close(lua) };
         unsafe { nn_dealloc(alloc, state.cast(), size_of::<State>()) };
         return null_mut();
