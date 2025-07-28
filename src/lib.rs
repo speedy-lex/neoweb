@@ -1,6 +1,6 @@
 use std::ptr::null_mut;
 
-use neonucleus::ffi::{nn_architecture, nn_loadCoreComponentTables, nn_newComputer};
+use neonucleus::ffi::{nn_architecture, nn_loadCoreComponentTables, nn_newComputer, nn_tickComputer};
 
 use crate::{context::{get_context, init_random}};
 use crate::arch::ARCH_TABLE;
@@ -27,7 +27,7 @@ pub extern "C" fn init() {
     unsafe { nn_loadCoreComponentTables(universe) };
     let computer = unsafe { nn_newComputer(universe, c"test".as_ptr().cast_mut(), (&ARCH_TABLE as *const nn_architecture).cast_mut(), null_mut(), 1024 * 1024 * 64, 16) };
     assert_ne!(computer, null_mut());
-    let txt = format!("{universe:p}");
+    let txt = format!("{}", unsafe { nn_tickComputer(computer) });
     for (i, ch) in txt.chars().enumerate() {
         set_cell(0, i, 0, ch);
     }

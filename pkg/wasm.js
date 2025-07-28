@@ -35,12 +35,12 @@ const importObject = {
     },
     neoweb_utils: {
         get_time: () => {
-            Date.now() / 1000
+            return Date.now() / 1000;
         }
     },
     libc: {
         get_unix_time_s: () => {
-            Math.floor(Date.now() / 1000)
+            return BigInt(Math.floor(Date.now() / 1000));
         }
     }
 };
