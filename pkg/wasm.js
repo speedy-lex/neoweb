@@ -33,10 +33,11 @@ async function runComputer() {
     try {
         wasm.init();
         let eeprom = await fetchFileBytes("luaBios.lua");
-        let buffer = wasm.alloc_eeprom(eeprom.byteLength);
-        const wasmMemory = new Uint8Array(wasm.memory.buffer, buffer, eeprom.byteLength);
+        let code = wasm.alloc_eeprom(eeprom.byteLength);
+        let data = wasm.alloc_eeprom(1024);
+        const wasmMemory = new Uint8Array(wasm.memory.buffer, code, eeprom.byteLength);
         wasmMemory.set(eeprom);
-        wasm.load_eeprom(buffer, eeprom.byteLength, eeprom.byteLength, 0, 0, 0);
+        wasm.load_eeprom(code, eeprom.byteLength, eeprom.byteLength, data, 1024, 0);
         requestAnimationFrame(tickComputer);
     } catch(e) {
         if (e instanceof WebAssembly.RuntimeError && e.message.includes("unreachable")) {
@@ -61,6 +62,18 @@ const importObject = {
         get_unix_time_s: () => {
             return BigInt(Math.floor(Date.now() / 1000));
         }
+    },
+    env: {
+        __ubsan_handle_type_mismatch_v1: (x, y) => {},
+        __ubsan_handle_pointer_overflow: (x, y, z) => {},
+        __ubsan_handle_divrem_overflow: (x, y, z) => {},
+        __ubsan_handle_add_overflow: (x, y, z) => {},
+        __ubsan_handle_float_cast_overflow: (x, y) => {},
+        __ubsan_handle_out_of_bounds: (x, y) => {},
+        __ubsan_handle_vla_bound_not_positive: (x, y) => {},
+        __ubsan_handle_mul_overflow: (x, y, z) => {},
+        __ubsan_handle_sub_overflow: (x, y, z) => {},
+        __ubsan_handle_shift_out_of_bounds: (x, y, z) => {},
     }
 };
 let wasm = undefined;

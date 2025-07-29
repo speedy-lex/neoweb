@@ -35,7 +35,7 @@ static mut SEED: u64 = 0;
 
 // random func: https://git.musl-libc.org/cgit/musl/tree/src/prng/rand.c
 unsafe extern "C" fn random(_: *mut c_void) -> usize {
-    unsafe { SEED = 6364136223846793005 * SEED + 1 };
+    unsafe { SEED = SEED.wrapping_mul(6364136223846793005).wrapping_add(1) };
 	(unsafe { SEED } >> 33) as usize
 }
 

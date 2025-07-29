@@ -38,8 +38,10 @@ pub extern "C" fn alloc_eeprom(size: i32) -> *mut u8 {
     assert!(size > 0);
     unsafe { alloc(Layout::from_size_align(size as usize, 1).unwrap()) }
 }
+/// # Safety
+/// code and data must point to code_size and data_size bytes of memory allocated with alloc_eeprom
 #[unsafe(no_mangle)]
-pub extern "C" fn load_eeprom(code: *mut u8, code_size: i32, code_len: i32, data: *mut u8, data_size: i32, data_len: i32) {
+pub unsafe extern "C" fn load_eeprom(code: *mut u8, code_size: i32, code_len: i32, data: *mut u8, data_size: i32, data_len: i32) {
     let computer = unsafe { COMPUTER };
     assert_ne!(computer, null_mut());
     assert_ne!(code, null_mut());
