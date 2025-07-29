@@ -1,4 +1,4 @@
-use std::{alloc::{alloc, Layout}, ptr::null_mut};
+use std::{alloc::{alloc, dealloc, Layout}, ptr::null_mut};
 
 use neonucleus::ffi::{nn_addEEPROM, nn_architecture, nn_computer, nn_eepromControl, nn_getError, nn_loadCoreComponentTables, nn_newComputer, nn_tickComputer, nn_veepromOptions, nn_volatileEEPROM};
 
@@ -22,7 +22,6 @@ static mut COMPUTER: *mut nn_computer = null_mut();
 
 #[unsafe(no_mangle)]
 pub extern "C" fn init() {
-    set_cell(0, 0, 0, 'n');
     init_random();
     let universe = unsafe { neonucleus::ffi::nn_newUniverse(get_context()) };
     assert_ne!(universe, null_mut());
@@ -70,6 +69,11 @@ pub unsafe extern "C" fn load_eeprom(code: *mut u8, code_size: i32, code_len: i3
     }) };
 
     unsafe { nn_addEEPROM(computer, null_mut(), 0, generic_eeprom) };
+
+    unsafe { dealloc(code, Layout::from_size_align(code_size as usize, 1).unwrap()) };
+    if !data.is_null() && data_size > 0 {
+        unsafe { dealloc(data, Layout::from_size_align(data_size as usize, 1).unwrap()) };
+    }
 }
 
 #[unsafe(no_mangle)]
