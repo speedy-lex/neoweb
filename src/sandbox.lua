@@ -422,7 +422,7 @@ local function bootstrap()
     local eeprom = libcomponent.list("eeprom")()
     assert(eeprom, "no eeprom")
 
-    local code = libcomponent.invoke(eeprom, "get")
+    local code = assert(libcomponent.invoke(eeprom, "get"))
     assert(code and #code > 0, "empty eeprom")
 
     return assert(load(code, "=bios", "t", sandbox))

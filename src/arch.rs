@@ -198,7 +198,7 @@ unsafe extern "C" fn component_invoke(lua: *mut lua_State) -> i32 {
     for i in 0..argc {
         unsafe { nn_addArgument((*state).computer, get_value(lua, i + 3)) };
     }
-    if unsafe { nn_invokeComponentMethod(component, method) } {
+    if !unsafe { nn_invokeComponentMethod(component, method) } {
         unsafe { nn_resetCall((*state).computer) };
         unsafe { lua_pushnil(lua) };
         unsafe { lua_pushstring(lua, c"no such method".as_ptr()) };
