@@ -1,6 +1,6 @@
 use std::{
     ffi::c_void,
-    ptr::{null, null_mut},
+    ptr::null_mut,
 };
 
 use lua53_sys::{
@@ -13,18 +13,7 @@ use lua53_sys::{
     luaL_checknumber, luaL_error, luaL_loadbufferx, luaL_openlibs,
 };
 use neonucleus::ffi::{
-    NN_MAX_ARGS, NN_STATE_SWITCH, NN_VALUE_ARRAY, NN_VALUE_BOOL, NN_VALUE_CSTR, NN_VALUE_INT,
-    NN_VALUE_NIL, NN_VALUE_NUMBER, NN_VALUE_STR, NN_VALUE_TABLE, nn_Alloc, nn_addArgument,
-    nn_addHeat, nn_alloc, nn_architecture, nn_clearError, nn_computer, nn_dealloc,
-    nn_fetchSignalValue, nn_findComponent, nn_getAllocator, nn_getArchitecture,
-    nn_getComponentAddress, nn_getComponentTable, nn_getComponentType, nn_getComputerAddress,
-    nn_getComputerMemoryTotal, nn_getEnergy, nn_getError, nn_getMaxEnergy, nn_getReturn,
-    nn_getReturnCount, nn_getState, nn_getSupportedArchitecture, nn_getTemperature,
-    nn_getTmpAddress, nn_getUniverse, nn_getUptime, nn_indexUser, nn_invokeComponentMethod,
-    nn_isOverheating, nn_isOverworked, nn_iterComponent, nn_popSignal, nn_pushSignal, nn_resetCall,
-    nn_resize, nn_setCError, nn_setError, nn_setNextArchitecture, nn_setState, nn_signalSize,
-    nn_strcmp, nn_value, nn_values_boolean, nn_values_dropAll, nn_values_getType,
-    nn_values_integer, nn_values_nil, nn_values_number, nn_values_string,
+    nn_Alloc, nn_addArgument, nn_addHeat, nn_alloc, nn_architecture, nn_clearError, nn_computer, nn_dealloc, nn_fetchSignalValue, nn_findComponent, nn_getAllocator, nn_getArchitecture, nn_getComponentAddress, nn_getComponentSlot, nn_getComponentTable, nn_getComponentType, nn_getComputerAddress, nn_getComputerMemoryTotal, nn_getEnergy, nn_getError, nn_getMaxEnergy, nn_getReturn, nn_getReturnCount, nn_getState, nn_getSupportedArchitecture, nn_getTableMethod, nn_getTemperature, nn_getTmpAddress, nn_getUniverse, nn_getUptime, nn_indexUser, nn_invokeComponentMethod, nn_isMethodEnabled, nn_isOverheating, nn_isOverworked, nn_iterComponent, nn_methodDoc, nn_popSignal, nn_pushSignal, nn_resetCall, nn_resize, nn_setCError, nn_setError, nn_setNextArchitecture, nn_setState, nn_signalSize, nn_strcmp, nn_value, nn_values_boolean, nn_values_dropAll, nn_values_getType, nn_values_integer, nn_values_nil, nn_values_number, nn_values_string, NN_MAX_ARGS, NN_STATE_SWITCH, NN_VALUE_ARRAY, NN_VALUE_BOOL, NN_VALUE_CSTR, NN_VALUE_INT, NN_VALUE_NIL, NN_VALUE_NUMBER, NN_VALUE_STR, NN_VALUE_TABLE
 };
 
 pub const ARCH_TABLE: nn_architecture = nn_architecture {
@@ -421,6 +410,94 @@ unsafe extern "C" fn computer_pop_signal(lua: *mut lua_State) -> i32 {
     }
 }
 
+unsafe extern "C" fn component_doc(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        let addr = luaL_checklstring(lua, 1, null_mut());
+        let method = luaL_checklstring(lua, 2, null_mut());
+        let component = nn_findComponent((*state).computer, addr as *mut _);
+        if component.is_null() {
+            lua_pushnil(lua);
+            lua_pushstring(lua, c"no such component".as_ptr());
+            return 2;
+        }
+        let doc = nn_methodDoc(nn_getComponentTable(component), method);
+        if doc.is_null() {
+            lua_pushnil(lua);
+        } else {
+            lua_pushstring(lua, doc);
+        }
+        1
+    }
+}
+
+unsafe extern "C" fn component_fields(lua: *mut lua_State) -> i32 {
+    unsafe {
+        lua_createtable(lua, 0, 0);
+        1
+    }
+}
+
+unsafe extern "C" fn component_slot(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        let addr = luaL_checklstring(lua, 1, null_mut());
+        let component = nn_findComponent((*state).computer, addr as *mut _);
+        if component.is_null() {
+            lua_pushnil(lua);
+            lua_pushstring(lua, c"no such component".as_ptr());
+            return 2;
+        }
+
+        lua_pushinteger(lua, nn_getComponentSlot(component) as i64);
+        1
+    }
+}
+
+unsafe extern "C" fn component_type(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        let addr = luaL_checklstring(lua, 1, null_mut());
+        let component = nn_findComponent((*state).computer, addr as *mut _);
+        if component.is_null() {
+            lua_pushnil(lua);
+            lua_pushstring(lua, c"no such component".as_ptr());
+            return 2;
+        }
+
+        lua_pushstring(lua, nn_getComponentType(nn_getComponentTable(component)));
+        1
+    }
+}
+
+unsafe extern "C" fn component_methods(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        let addr = luaL_checklstring(lua, 1, null_mut());
+        let component = nn_findComponent((*state).computer, addr as *mut _);
+        if component.is_null() {
+            lua_pushnil(lua);
+            lua_pushstring(lua, c"no such component".as_ptr());
+            return 2;
+        }
+        let table = nn_getComponentTable(component);
+        lua_createtable(lua, 0, 0);
+        let methods = lua_gettop(lua);
+        
+        let mut i = 0;
+        loop {
+            let mut direct = false;
+            let name = nn_getTableMethod(table, i, &mut direct as *mut _);
+            if name.is_null() { break }
+            i += 1;
+            if !nn_isMethodEnabled(component, name) { continue }
+            lua_pushboolean(lua, direct as i32);
+            lua_setfield(lua, methods, name);
+        }
+        1
+    }
+}
+
 fn load_env(lua: *mut lua_State) {
     unsafe { lua_createtable(lua, 0, 10) };
     let computer = unsafe { lua_gettop(lua) };
@@ -474,18 +551,18 @@ fn load_env(lua: *mut lua_State) {
     let component = unsafe { lua_gettop(lua) };
     unsafe { lua_pushcclosure(lua, Some(component_list), 0) };
     unsafe { lua_setfield(lua, component, c"list".as_ptr()) };
-    // lua_pushcfunction(L, testLuaArch_component_doc);
-    // lua_setfield(L, component, "doc");
-    // lua_pushcfunction(L, testLuaArch_component_fields);
-    // lua_setfield(L, component, "fields");
-    // lua_pushcfunction(L, testLuaArch_component_methods);
-    // lua_setfield(L, component, "methods");
+    unsafe { lua_pushcclosure(lua, Some(component_doc), 0) };
+    unsafe { lua_setfield(lua, component, c"doc".as_ptr()) };
+    unsafe { lua_pushcclosure(lua, Some(component_fields), 0) };
+    unsafe { lua_setfield(lua, component, c"fields".as_ptr()) };
+    unsafe { lua_pushcclosure(lua, Some(component_methods), 0) };
+    unsafe { lua_setfield(lua, component, c"methods".as_ptr()) };
     unsafe { lua_pushcclosure(lua, Some(component_invoke), 0) };
     unsafe { lua_setfield(lua, component, c"invoke".as_ptr()) };
-    // lua_pushcfunction(L, testLuaArch_component_slot);
-    // lua_setfield(L, component, "slot");
-    // lua_pushcfunction(L, testLuaArch_component_type);
-    // lua_setfield(L, component, "type");
+    unsafe { lua_pushcclosure(lua, Some(component_slot), 0) };
+    unsafe { lua_setfield(lua, component, c"slot".as_ptr()) };
+    unsafe { lua_pushcclosure(lua, Some(component_type), 0) };
+    unsafe { lua_setfield(lua, component, c"type".as_ptr()) };
     unsafe { lua_setglobal(lua, c"component".as_ptr()) };
 
     unsafe { lua_createtable(lua, 0, 7) };
