@@ -1,7 +1,31 @@
-use std::{ffi::c_void, ptr::{null, null_mut}};
+use std::{
+    ffi::c_void,
+    ptr::{null, null_mut},
+};
 
-use lua53_sys::{luaL_checkinteger, luaL_checklstring, luaL_checknumber, luaL_error, luaL_loadbufferx, luaL_openlibs, lua_State, lua_close, lua_createtable, lua_getfield, lua_gettop, lua_isinteger, lua_isnumber, lua_newstate, lua_pushboolean, lua_pushcclosure, lua_pushinteger, lua_pushlightuserdata, lua_pushlstring, lua_pushnil, lua_pushnumber, lua_pushstring, lua_resume, lua_setfield, lua_setglobal, lua_seti, lua_settable, lua_settop, lua_toboolean, lua_tointegerx, lua_tolstring, lua_tonumberx, lua_touserdata, lua_type, LUA_OK, LUA_REGISTRYINDEX, LUA_TBOOLEAN, LUA_TNUMBER, LUA_TSTRING, LUA_YIELD};
-use neonucleus::ffi::{nn_Alloc, nn_addArgument, nn_addHeat, nn_alloc, nn_architecture, nn_clearError, nn_computer, nn_dealloc, nn_fetchSignalValue, nn_findComponent, nn_getAllocator, nn_getArchitecture, nn_getComponentAddress, nn_getComponentTable, nn_getComponentType, nn_getComputerAddress, nn_getComputerMemoryTotal, nn_getEnergy, nn_getError, nn_getMaxEnergy, nn_getReturn, nn_getReturnCount, nn_getState, nn_getSupportedArchitecture, nn_getTemperature, nn_getTmpAddress, nn_getUniverse, nn_getUptime, nn_indexUser, nn_invokeComponentMethod, nn_isOverheating, nn_isOverworked, nn_iterComponent, nn_popSignal, nn_pushSignal, nn_resetCall, nn_resize, nn_setCError, nn_setError, nn_setNextArchitecture, nn_setState, nn_signalSize, nn_strcmp, nn_value, nn_values_boolean, nn_values_drop, nn_values_dropAll, nn_values_getType, nn_values_integer, nn_values_nil, nn_values_number, nn_values_string, NN_MAX_ARGS, NN_STATE_SWITCH, NN_VALUE_ARRAY, NN_VALUE_BOOL, NN_VALUE_CSTR, NN_VALUE_INT, NN_VALUE_NIL, NN_VALUE_NUMBER, NN_VALUE_STR, NN_VALUE_TABLE};
+use lua53_sys::{
+    LUA_OK, LUA_REGISTRYINDEX, LUA_TBOOLEAN, LUA_TNUMBER, LUA_TSTRING, LUA_YIELD, lua_State,
+    lua_close, lua_createtable, lua_getfield, lua_gettop, lua_isinteger, lua_isnumber,
+    lua_newstate, lua_pushboolean, lua_pushcclosure, lua_pushinteger, lua_pushlightuserdata,
+    lua_pushlstring, lua_pushnil, lua_pushnumber, lua_pushstring, lua_resume, lua_setfield,
+    lua_setglobal, lua_seti, lua_settable, lua_settop, lua_toboolean, lua_tointegerx,
+    lua_tolstring, lua_tonumberx, lua_touserdata, lua_type, luaL_checkinteger, luaL_checklstring,
+    luaL_checknumber, luaL_error, luaL_loadbufferx, luaL_openlibs,
+};
+use neonucleus::ffi::{
+    NN_MAX_ARGS, NN_STATE_SWITCH, NN_VALUE_ARRAY, NN_VALUE_BOOL, NN_VALUE_CSTR, NN_VALUE_INT,
+    NN_VALUE_NIL, NN_VALUE_NUMBER, NN_VALUE_STR, NN_VALUE_TABLE, nn_Alloc, nn_addArgument,
+    nn_addHeat, nn_alloc, nn_architecture, nn_clearError, nn_computer, nn_dealloc,
+    nn_fetchSignalValue, nn_findComponent, nn_getAllocator, nn_getArchitecture,
+    nn_getComponentAddress, nn_getComponentTable, nn_getComponentType, nn_getComputerAddress,
+    nn_getComputerMemoryTotal, nn_getEnergy, nn_getError, nn_getMaxEnergy, nn_getReturn,
+    nn_getReturnCount, nn_getState, nn_getSupportedArchitecture, nn_getTemperature,
+    nn_getTmpAddress, nn_getUniverse, nn_getUptime, nn_indexUser, nn_invokeComponentMethod,
+    nn_isOverheating, nn_isOverworked, nn_iterComponent, nn_popSignal, nn_pushSignal, nn_resetCall,
+    nn_resize, nn_setCError, nn_setError, nn_setNextArchitecture, nn_setState, nn_signalSize,
+    nn_strcmp, nn_value, nn_values_boolean, nn_values_dropAll, nn_values_getType,
+    nn_values_integer, nn_values_nil, nn_values_number, nn_values_string,
+};
 
 pub const ARCH_TABLE: nn_architecture = nn_architecture {
     userdata: null_mut(),
@@ -22,7 +46,12 @@ struct State {
     mem_usage: usize,
 }
 
-unsafe extern "C" fn lua_alloc(state: *mut c_void, ptr: *mut c_void, old: usize, new: usize) -> *mut c_void {
+unsafe extern "C" fn lua_alloc(
+    state: *mut c_void,
+    ptr: *mut c_void,
+    old: usize,
+    new: usize,
+) -> *mut c_void {
     let state: &mut State = unsafe { &mut *state.cast() };
     let alloc = unsafe { nn_getAllocator(nn_getUniverse(state.computer)) };
     if new == 0 {
@@ -34,7 +63,8 @@ unsafe extern "C" fn lua_alloc(state: *mut c_void, ptr: *mut c_void, old: usize,
         if ptr.is_null() {
             actual_old = 0;
         }
-        if state.mem_usage - actual_old + new > unsafe { nn_getComputerMemoryTotal(state.computer) } {
+        if state.mem_usage - actual_old + new > unsafe { nn_getComputerMemoryTotal(state.computer) }
+        {
             return null_mut(); // OOM condition
         }
         state.mem_usage -= actual_old;
@@ -73,19 +103,25 @@ unsafe fn push_value(lua: *mut lua_State, val: nn_value) {
     match t {
         NN_VALUE_NIL => {
             unsafe { lua_pushnil(lua) };
-        },
+        }
         NN_VALUE_INT => {
             unsafe { lua_pushinteger(lua, val.__bindgen_anon_1.integer as i64) };
-        },
+        }
         NN_VALUE_NUMBER => {
             unsafe { lua_pushnumber(lua, val.__bindgen_anon_1.number) };
-        },
+        }
         NN_VALUE_BOOL => {
             unsafe { lua_pushboolean(lua, val.__bindgen_anon_1.boolean as i32) };
-        },
+        }
         NN_VALUE_STR => {
-            unsafe { lua_pushlstring(lua, (*val.__bindgen_anon_1.string).data, (*val.__bindgen_anon_1.string).len) };
-        },
+            unsafe {
+                lua_pushlstring(
+                    lua,
+                    (*val.__bindgen_anon_1.string).data,
+                    (*val.__bindgen_anon_1.string).len,
+                )
+            };
+        }
         NN_VALUE_CSTR => {
             unsafe { lua_pushstring(lua, val.__bindgen_anon_1.cstring) };
         }
@@ -109,14 +145,14 @@ unsafe fn push_value(lua: *mut lua_State, val: nn_value) {
                 unsafe { push_value(lua, (*(*tbl).pairs.add(i)).val) };
                 unsafe { lua_settable(lua, lua_val) };
             }
-        },
+        }
         _ => {
             unsafe { luaL_error(lua, c"invalid return type".as_ptr()) };
-        },
+        }
     }
 }
 unsafe fn lua_pop(lua: *mut lua_State, n: i32) {
-    unsafe { lua_settop(lua, -(n)-1) }
+    unsafe { lua_settop(lua, -(n) - 1) }
 }
 unsafe fn get_state(lua: *mut lua_State) -> *mut State {
     unsafe { lua_getfield(lua, LUA_REGISTRYINDEX, c"archPtr".as_ptr()) };
@@ -125,48 +161,36 @@ unsafe fn get_state(lua: *mut lua_State) -> *mut State {
     state.cast()
 }
 unsafe extern "C" fn computer_clear_error(lua: *mut lua_State) -> i32 {
-    let state = unsafe {
-        get_state(lua)
-    };
+    let state = unsafe { get_state(lua) };
     unsafe { nn_clearError((*state).computer) };
     0
 }
 unsafe extern "C" fn computer_uptime(lua: *mut lua_State) -> i32 {
-    let state = unsafe {
-        get_state(lua)
-    };
+    let state = unsafe { get_state(lua) };
     unsafe { lua_pushnumber(lua, nn_getUptime((*state).computer)) };
     1
 }
 unsafe extern "C" fn computer_is_overheating(lua: *mut lua_State) -> i32 {
-    let state = unsafe {
-        get_state(lua)
-    };
+    let state = unsafe { get_state(lua) };
     unsafe { lua_pushboolean(lua, nn_isOverheating((*state).computer) as i32) };
     1
 }
 unsafe extern "C" fn computer_is_overworked(lua: *mut lua_State) -> i32 {
-    let state = unsafe {
-        get_state(lua)
-    };
+    let state = unsafe { get_state(lua) };
     unsafe { lua_pushboolean(lua, nn_isOverworked((*state).computer) as i32) };
     1
 }
 unsafe extern "C" fn computer_get_state(lua: *mut lua_State) -> i32 {
-    let state = unsafe {
-        get_state(lua)
-    };
+    let state = unsafe { get_state(lua) };
     unsafe { lua_pushinteger(lua, nn_getState((*state).computer) as i64) };
     1
 }
-unsafe extern "C" fn computer_beep(lua: *mut lua_State) -> i32 {
+unsafe extern "C" fn computer_beep(_lua: *mut lua_State) -> i32 {
     // TODO: beep
     0
 }
 unsafe extern "C" fn component_list(lua: *mut lua_State) -> i32 {
-    let state = unsafe {
-        get_state(lua)
-    };
+    let state = unsafe { get_state(lua) };
     unsafe { lua_createtable(lua, 0, 10) };
     let mut iter = 0;
     let list = unsafe { lua_gettop(lua) };
@@ -185,9 +209,7 @@ unsafe extern "C" fn component_list(lua: *mut lua_State) -> i32 {
     1
 }
 unsafe extern "C" fn component_invoke(lua: *mut lua_State) -> i32 {
-    let state = unsafe {
-        get_state(lua)
-    };
+    let state = unsafe { get_state(lua) };
 
     let addr = unsafe { luaL_checklstring(lua, 1, null_mut()) };
     let method = unsafe { luaL_checklstring(lua, 2, null_mut()) };
@@ -196,7 +218,7 @@ unsafe extern "C" fn component_invoke(lua: *mut lua_State) -> i32 {
     if component.is_null() {
         unsafe { lua_pushnil(lua) };
         unsafe { lua_pushstring(lua, c"no such component".as_ptr()) };
-        return 2
+        return 2;
     }
     unsafe { nn_resetCall((*state).computer) };
     for i in 0..argc {
@@ -220,145 +242,184 @@ unsafe extern "C" fn component_invoke(lua: *mut lua_State) -> i32 {
     retc as i32
 }
 
-unsafe extern "C" fn computer_used_memory(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    lua_pushinteger(lua, (*state).mem_usage as i64);
-    return 1;
-}}
-
-unsafe extern "C" fn computer_free_memory(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    let total = nn_getComputerMemoryTotal((*state).computer);
-    lua_pushinteger(lua, (total - (*state).mem_usage) as i64);
-    return 1;
-}}
-
-unsafe extern "C" fn computer_total_memory(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    lua_pushinteger(lua, nn_getComputerMemoryTotal((*state).computer) as i64);
-    return 1;
-}}
-
-unsafe extern "C" fn computer_energy(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    lua_pushinteger(lua, nn_getEnergy((*state).computer) as i64);
-    return 1;
-}}
-
-unsafe extern "C" fn computer_max_energy(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    lua_pushinteger(lua, nn_getMaxEnergy((*state).computer) as i64);
-    return 1;
-}}
-
-unsafe extern "C" fn computer_get_architecture(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    lua_pushstring(lua, (*nn_getArchitecture((*state).computer)).archName);
-    return 1;
-}}
-
-unsafe extern "C" fn computer_get_architectures(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    lua_createtable(lua, 3, 0);
-    let arr = lua_gettop(lua);
-    let mut i = 0;
-    loop {
-        let arch = nn_getSupportedArchitecture((*state).computer, i);
-        if arch == null_mut() { break }
-        i += 1;
-        lua_pushstring(lua, (*arch).archName);
-        lua_seti(lua, arr, i as i64);
+unsafe extern "C" fn computer_used_memory(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        lua_pushinteger(lua, (*state).mem_usage as i64);
+        1
     }
-    return 1;
-}}
+}
 
-unsafe extern "C" fn computer_set_architecture(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    let requested = luaL_checklstring(lua, 1, null_mut());
-    let mut i = 0;
-    loop {
-        let arch = nn_getArchitecture((*state).computer);
-        if arch == null_mut() { break }
-        if nn_strcmp((*arch).archName, requested) == 0 {
-            nn_setState((*state).computer, NN_STATE_SWITCH as i32);
-            nn_setNextArchitecture((*state).computer, arch);
+unsafe extern "C" fn computer_free_memory(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        let total = nn_getComputerMemoryTotal((*state).computer);
+        lua_pushinteger(lua, (total - (*state).mem_usage) as i64);
+        1
+    }
+}
+
+unsafe extern "C" fn computer_total_memory(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        lua_pushinteger(lua, nn_getComputerMemoryTotal((*state).computer) as i64);
+        1
+    }
+}
+
+unsafe extern "C" fn computer_energy(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        lua_pushinteger(lua, nn_getEnergy((*state).computer) as i64);
+        1
+    }
+}
+
+unsafe extern "C" fn computer_max_energy(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        lua_pushinteger(lua, nn_getMaxEnergy((*state).computer) as i64);
+        1
+    }
+}
+
+unsafe extern "C" fn computer_get_architecture(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        lua_pushstring(lua, (*nn_getArchitecture((*state).computer)).archName);
+        1
+    }
+}
+
+unsafe extern "C" fn computer_get_architectures(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        lua_createtable(lua, 3, 0);
+        let arr = lua_gettop(lua);
+        let mut i = 0;
+        loop {
+            let arch = nn_getSupportedArchitecture((*state).computer, i);
+            if arch.is_null() {
+                break;
+            }
+            i += 1;
+            lua_pushstring(lua, (*arch).archName);
+            lua_seti(lua, arr, i as i64);
+        }
+        1
+    }
+}
+
+unsafe extern "C" fn computer_set_architecture(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        let requested = luaL_checklstring(lua, 1, null_mut());
+        loop {
+            let arch = nn_getArchitecture((*state).computer);
+            if arch.is_null() {
+                break;
+            }
+            if nn_strcmp((*arch).archName, requested) == 0 {
+                nn_setState((*state).computer, NN_STATE_SWITCH as i32);
+                nn_setNextArchitecture((*state).computer, arch);
+                return 0;
+            }
+        }
+        luaL_error(lua, c"unsupported architecture: %s".as_ptr(), requested);
+        0
+    }
+}
+
+unsafe extern "C" fn computer_get_temperature(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        lua_pushnumber(lua, nn_getTemperature((*state).computer));
+        1
+    }
+}
+
+unsafe extern "C" fn computer_add_heat(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        nn_addHeat((*state).computer, luaL_checknumber(lua, 1));
+        0
+    }
+}
+
+unsafe extern "C" fn computer_address(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        lua_pushstring(lua, nn_getComputerAddress((*state).computer));
+        1
+    }
+}
+
+unsafe extern "C" fn computer_tmp_address(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        lua_pushstring(lua, nn_getTmpAddress((*state).computer));
+        1
+    }
+}
+
+unsafe extern "C" fn computer_users(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        let mut i = 0;
+        loop {
+            let name = nn_indexUser((*state).computer, i);
+            if name.is_null() {
+                break;
+            }
+            lua_pushstring(lua, name);
+            i += 1;
+        }
+        i as i32
+    }
+}
+
+unsafe extern "C" fn computer_set_state(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        let s = luaL_checkinteger(lua, 1);
+        nn_setState((*state).computer, s as i32);
+        1
+    }
+}
+
+unsafe extern "C" fn computer_push_signal(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        luaL_checklstring(lua, 1, null_mut());
+        let argc = lua_gettop(lua);
+        if argc as u32 > NN_MAX_ARGS {
+            luaL_error(lua, c"too many arguments".as_ptr());
+        }
+        let mut args: Vec<nn_value> = Vec::with_capacity(argc as usize);
+        for i in 0..argc {
+            args.push(get_value(lua, i + 1));
+        }
+        let err = nn_pushSignal((*state).computer, args.as_mut_ptr(), argc as usize);
+        if !err.is_null() {
+            nn_values_dropAll(args.as_mut_ptr(), argc as usize);
+            luaL_error(lua, c"%s".as_ptr(), err);
             return 0;
         }
+        0
     }
-    luaL_error(lua, c"unsupported architecture: %s".as_ptr(), requested);
-    return 0;
-}}
+}
 
-unsafe extern "C" fn computer_get_temperature(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    lua_pushnumber(lua, nn_getTemperature((*state).computer));
-    return 1;
-}}
-
-unsafe extern "C" fn computer_add_heat(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    nn_addHeat((*state).computer, luaL_checknumber(lua, 1));
-    return 0;
-}}
-
-unsafe extern "C" fn computer_address(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    lua_pushstring(lua, nn_getComputerAddress((*state).computer));
-    return 1;
-}}
-
-unsafe extern "C" fn computer_tmp_address(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    lua_pushstring(lua, nn_getTmpAddress((*state).computer));
-    return 1;
-}}
-
-unsafe extern "C" fn computer_users(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    let mut i = 0;
-    loop {
-        let name = nn_indexUser((*state).computer, i);
-        if name == null() { break }
-        lua_pushstring(lua, name);
-        i += 1;
+unsafe extern "C" fn computer_pop_signal(lua: *mut lua_State) -> i32 {
+    unsafe {
+        let state = get_state(lua);
+        let retc = nn_signalSize((*state).computer);
+        for i in 0..retc {
+            push_value(lua, nn_fetchSignalValue((*state).computer, i));
+        }
+        nn_popSignal((*state).computer);
+        retc as i32
     }
-    return i as i32;
-}}
-
-unsafe extern "C" fn computer_set_state(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    let s = luaL_checkinteger(lua, 1);
-    nn_setState((*state).computer, s as i32);
-    return 1;
-}}
-
-unsafe extern "C" fn computer_push_signal(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    luaL_checklstring(lua, 1, null_mut());
-    let argc = lua_gettop(lua);
-    if argc as u32 > NN_MAX_ARGS { luaL_error(lua, c"too many arguments".as_ptr()); }
-    let mut args: Vec<nn_value> = Vec::with_capacity(argc as usize);
-    for i in 0..argc {
-        args.push(get_value(lua, i + 1));
-    }
-    let err = nn_pushSignal((*state).computer, args.as_mut_ptr(), argc as usize);
-    if err != null() {
-        nn_values_dropAll(args.as_mut_ptr(), argc as usize);
-        luaL_error(lua, c"%s".as_ptr(), err);
-        return 0;
-    }
-    return 0;
-}}
-
-unsafe extern "C" fn computer_pop_signal(lua: *mut lua_State) -> i32 { unsafe {
-    let state = get_state(lua);
-    let retc = nn_signalSize((*state).computer);
-    for i in 0..retc {
-        push_value(lua, nn_fetchSignalValue((*state).computer, i));
-    }
-    nn_popSignal((*state).computer);
-    return retc as i32;
-}}
+}
 
 fn load_env(lua: *mut lua_State) {
     unsafe { lua_createtable(lua, 0, 10) };
@@ -471,20 +532,37 @@ unsafe extern "C" fn setup(computer: *mut nn_computer, _userdata: *mut c_void) -
     unsafe { lua_setfield(lua, LUA_REGISTRYINDEX, c"archPtr".as_ptr()) };
     unsafe { (*state).lua = lua };
     load_env(lua);
-    if unsafe { luaL_loadbufferx(lua, LUA_SANDBOX.as_ptr().cast(), LUA_SANDBOX.len(), c"=machine.lua".as_ptr(), c"t".as_ptr()) } != LUA_OK {
+    if unsafe {
+        luaL_loadbufferx(
+            lua,
+            LUA_SANDBOX.as_ptr().cast(),
+            LUA_SANDBOX.len(),
+            c"=machine.lua".as_ptr(),
+            c"t".as_ptr(),
+        )
+    } != LUA_OK
+    {
         unsafe { lua_close(lua) };
         unsafe { nn_dealloc(alloc, state.cast(), size_of::<State>()) };
         return null_mut();
     }
     state.cast()
 }
-unsafe extern "C" fn teardown(computer: *mut nn_computer, state: *mut c_void, _userdata: *mut c_void) {
+unsafe extern "C" fn teardown(
+    computer: *mut nn_computer,
+    state: *mut c_void,
+    _userdata: *mut c_void,
+) {
     let alloc = unsafe { nn_getAllocator(nn_getUniverse(computer)) };
     let state: *mut State = state.cast();
     unsafe { lua_close((*state).lua) };
     unsafe { nn_dealloc(alloc, state.cast(), size_of::<State>()) };
 }
-unsafe extern "C" fn get_memory_usage(_computer: *mut nn_computer, state: *mut c_void, _userdata: *mut c_void) -> usize {
+unsafe extern "C" fn get_memory_usage(
+    _computer: *mut nn_computer,
+    state: *mut c_void,
+    _userdata: *mut c_void,
+) -> usize {
     let state: *mut State = state.cast();
     unsafe { (*state).mem_usage }
 }
@@ -496,8 +574,8 @@ unsafe extern "C" fn tick(computer: *mut nn_computer, state: *mut c_void, _userd
         LUA_OK => {
             // machine halted
             unsafe { nn_setCError(computer, c"machine halted".as_ptr()) };
-        },
-        LUA_YIELD => {},
+        }
+        LUA_YIELD => {}
         _ => {
             let s = unsafe { lua_tolstring((*state).lua, -1, null_mut()) };
             unsafe { nn_setError(computer, s) };

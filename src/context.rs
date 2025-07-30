@@ -16,13 +16,19 @@ pub fn align_up(size: usize, align: usize) -> usize {
     (size + align - 1) & !(align - 1)
 }
 
-unsafe extern "C" fn alloc(_userdata: *mut c_void, ptr: *mut c_void, old_size: usize, new_size: usize, _extra: *mut c_void) -> *mut c_void {
+unsafe extern "C" fn alloc(
+    _userdata: *mut c_void,
+    ptr: *mut c_void,
+    old_size: usize,
+    new_size: usize,
+    _extra: *mut c_void,
+) -> *mut c_void {
     const NULL: *mut c_void = null_mut();
     match (ptr, old_size, new_size) {
         (NULL, 0, n) => {
             let layout = Layout::from_size_align(align_up(n, 16), 16).unwrap();
             unsafe { std::alloc::alloc(layout) }.cast()
-        },
+        }
         (ptr, size, 0) => {
             let layout = Layout::from_size_align(align_up(size, 16), 16).unwrap();
             assert_ne!(ptr, null_mut());
@@ -31,7 +37,14 @@ unsafe extern "C" fn alloc(_userdata: *mut c_void, ptr: *mut c_void, old_size: u
         }
         (ptr, size, new_size) => {
             assert!(!ptr.is_null());
-            unsafe { std::alloc::realloc(ptr.cast(), Layout::from_size_align(align_up(size, 16), 16).unwrap(), align_up(new_size, 16)) }.cast()
+            unsafe {
+                std::alloc::realloc(
+                    ptr.cast(),
+                    Layout::from_size_align(align_up(size, 16), 16).unwrap(),
+                    align_up(new_size, 16),
+                )
+            }
+            .cast()
         }
     }
 }
@@ -44,7 +57,7 @@ static mut SEED: u64 = 0;
 // random func: https://git.musl-libc.org/cgit/musl/tree/src/prng/rand.c
 unsafe extern "C" fn random(_: *mut c_void) -> usize {
     unsafe { SEED = SEED.wrapping_mul(6364136223846793005).wrapping_add(1) };
-	(unsafe { SEED } >> 33) as usize
+    (unsafe { SEED } >> 33) as usize
 }
 
 pub fn init_random() {
