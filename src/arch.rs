@@ -303,6 +303,18 @@ fn load_env(lua: *mut lua_State) {
     // lua_pushinteger(L, NN_STATE_SWITCH);
     // lua_setfield(L, states, "switch");
     unsafe { lua_setglobal(lua, c"states".as_ptr()) };
+
+    unsafe { lua_createtable(lua, 0, 20) };
+    let unicode = unsafe { lua_gettop(lua) };
+    // lua_pushcfunction(L, testLuaArch_unicode_sub);
+    // lua_setfield(L, unicode, "sub");
+    // lua_pushcfunction(L, testLuaArch_unicode_len);
+    // lua_setfield(L, unicode, "len");
+    // lua_pushcfunction(L, testLuaArch_unicode_wlen);
+    // lua_setfield(L, unicode, "wlen");
+    // lua_pushcfunction(L, testLuaArch_unicode_char);
+    // lua_setfield(L, unicode, "char");
+    unsafe { lua_setglobal(lua, c"unicode".as_ptr()) };
 }
 unsafe extern "C" fn setup(computer: *mut nn_computer, _userdata: *mut c_void) -> *mut c_void {
     let alloc = unsafe { nn_getAllocator(nn_getUniverse(computer)) };
