@@ -1,7 +1,7 @@
 use core::slice;
 use std::{alloc::{alloc, dealloc, Layout}, ptr::null_mut};
 
-use neonucleus::ffi::{nn_addEEPROM, nn_addFileSystem, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getError, nn_loadCoreComponentTables, nn_newComputer, nn_tickComputer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem};
+use neonucleus::ffi::{nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getContext, nn_getError, nn_gpuControl, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_setDepth, nn_tickComputer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem};
 
 use crate::context::{get_context, init_random};
 use crate::arch::ARCH_TABLE;
@@ -30,6 +30,32 @@ pub extern "C" fn init() {
     let computer = unsafe { nn_newComputer(universe, c"test".as_ptr().cast_mut(), (&ARCH_TABLE as *const nn_architecture).cast_mut(), null_mut(), 1024 * 1024 * 64, 16) };
     assert_ne!(computer, null_mut());
     unsafe { COMPUTER = computer };
+
+    let mut ctx = get_context();
+    let screen = unsafe { nn_newScreen(&raw mut ctx, 80, 25, 24, 16, 256) };
+    unsafe { nn_setDepth(screen, 8) }; // looks cool
+    unsafe { nn_addKeyboard(screen, c"browser keyboard".as_ptr().cast_mut()) };
+    unsafe { nn_mountKeyboard(computer, c"browser keyboard".as_ptr().cast_mut(), 2) };
+    unsafe { nn_addScreen(computer, null_mut(), 2, screen) };
+
+    let mut gpu_ctrl = nn_gpuControl {
+        totalVRAM: 16*1024,
+        maximumBufferCount: 64,
+        defaultBufferWidth: 80,
+        defaultBufferHeight: 25,
+        screenCopyPerTick: 8.0,
+        screenFillPerTick: 16.0,
+        screenSetsPerTick: 32.0,
+        bitbltPerTick: 8.0,
+        heatPerPixelChange: 0.00005,
+        heatPerPixelReset: 0.00001,
+        heatPerVRAMChange: 0.00000015,
+        energyPerPixelChange: 0.05,
+        energyPerPixelReset: 0.01,
+        energyPerVRAMChange: 0.0015,
+    };
+
+    unsafe { nn_addGPU(computer, null_mut(), 3, &raw mut gpu_ctrl) };
 }
 
 #[unsafe(no_mangle)]
