@@ -15,4 +15,5 @@ panic = "abort"
 
 [dependencies]
 neonucleus = { git = "https://github.com/speedy-lex/neonucleus-rs" }
-lua53-sys = { git = "https://github.com/speedy-lex/lua53-sys", features = ["baremetal"] }
+lua53-sys = { git = "https://github.com/speedy-lex/lua53-sys", features = ["alloc", "baremetal"] }
+neotar = { git = "https://github.com/speedy-lex/neotar" }

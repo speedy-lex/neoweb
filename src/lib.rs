@@ -1,8 +1,9 @@
+use core::slice;
 use std::{alloc::{alloc, dealloc, Layout}, ptr::null_mut};
 
-use neonucleus::ffi::{nn_addEEPROM, nn_architecture, nn_computer, nn_eepromControl, nn_getError, nn_loadCoreComponentTables, nn_newComputer, nn_tickComputer, nn_veepromOptions, nn_volatileEEPROM};
+use neonucleus::ffi::{nn_addEEPROM, nn_addFileSystem, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getError, nn_loadCoreComponentTables, nn_newComputer, nn_tickComputer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem};
 
-use crate::{context::{get_context, init_random}};
+use crate::context::{get_context, init_random};
 use crate::arch::ARCH_TABLE;
 
 mod context;
@@ -32,13 +33,12 @@ pub extern "C" fn init() {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn alloc_eeprom(size: i32) -> *mut u8 {
-    assert!(size <= 1024 * 1024); // no huge allocs
+pub extern "C" fn alloc_block(size: i32) -> *mut u8 {
     assert!(size > 0);
     unsafe { alloc(Layout::from_size_align(size as usize, 1).unwrap()) }
 }
 /// # Safety
-/// code and data must point to code_size and data_size bytes of memory allocated with alloc_eeprom
+/// code and data must point to code_size and data_size bytes of memory allocated with alloc_block
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn load_eeprom(code: *mut u8, code_size: i32, code_len: i32, data: *mut u8, data_size: i32, data_len: i32) {
     let computer = unsafe { COMPUTER };
@@ -74,6 +74,72 @@ pub unsafe extern "C" fn load_eeprom(code: *mut u8, code_size: i32, code_len: i3
     if !data.is_null() && data_size > 0 {
         unsafe { dealloc(data, Layout::from_size_align(data_size as usize, 1).unwrap()) };
     }
+}
+
+/// # Safety
+/// ptr must point to size bytes of memory allocated with alloc_block
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn load_vfs(ptr: *mut u8, size: i32) {
+    let computer = unsafe { COMPUTER };
+    assert_ne!(computer, null_mut());
+
+    let root_len = u32::from_be_bytes(unsafe { ptr.cast::<[u8; 4]>().read() });
+    let bytes = unsafe { slice::from_raw_parts(ptr.add(4), size as usize - 4) };
+    let entries = neotar::read_entries_recursive(bytes);
+
+    let mut image = Vec::with_capacity(entries.len());
+
+    for entry in entries.iter() {
+        let name = entry.name.as_ptr();
+        match entry.entry {
+            neotar::EntryInner::File(contents) => {
+                image.push(nn_vfilesystemImageNode {
+                    name,
+                    data: contents.as_ptr().cast(),
+                    len: contents.len(),
+                });
+            },
+            neotar::EntryInner::Directory(len) => {
+                image.push(nn_vfilesystemImageNode {
+                    name,
+                    data: null_mut(),
+                    len: len as usize,
+                });
+            },
+        }
+    }
+
+    let opts = nn_vfilesystemOptions {
+        creationTime: 0,
+        maxDirEntries: 64,
+        capacity: 1024 * 1024,
+        isReadOnly: false,
+        label: [0; 128],
+        labelLen: 0,
+        image: image.as_mut_ptr(),
+        rootEntriesInImage: root_len as usize,
+    };
+
+    let mut ctx = get_context();
+
+    let vfs = unsafe { nn_volatileFilesystem(&raw mut ctx, opts, nn_filesystemControl {
+        readBytesPerTick: 65536.0,
+        writeBytesPerTick: 32768.0,
+        removeFilesPerTick: 16.0,
+        createFilesPerTick: 16.0,
+        
+        readHeatPerByte: 0.00000015,
+        writeHeatPerByte: 0.0000015,
+        removeHeat: 0.035,
+        createHeat: 0.045,
+
+        readEnergyPerByte: 0.0015,
+        writeEnergyPerByte: 0.0035,
+        removeEnergy: 0.135,
+        createEnergy: 0.325,
+    }) };
+    unsafe { nn_addFileSystem(computer, null_mut(), 1, vfs) };
+    unsafe { dealloc(ptr, Layout::from_size_align(size as usize, 1).unwrap()) };
 }
 
 #[unsafe(no_mangle)]

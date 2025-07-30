@@ -12,18 +12,26 @@ pub fn get_time() -> f64 {
     unsafe { _get_time() }
 }
 
+pub fn align_up(size: usize, align: usize) -> usize {
+    (size + align - 1) & !(align - 1)
+}
+
 unsafe extern "C" fn alloc(_userdata: *mut c_void, ptr: *mut c_void, old_size: usize, new_size: usize, _extra: *mut c_void) -> *mut c_void {
     const NULL: *mut c_void = null_mut();
     match (ptr, old_size, new_size) {
         (NULL, 0, n) => {
-            unsafe { std::alloc::alloc(Layout::from_size_align_unchecked(n, 16)) }.cast()
+            let layout = Layout::from_size_align(align_up(n, 16), 16).unwrap();
+            unsafe { std::alloc::alloc(layout) }.cast()
         },
         (ptr, size, 0) => {
-            unsafe { std::alloc::dealloc(ptr.cast(), Layout::from_size_align_unchecked(size, 16)) };
+            let layout = Layout::from_size_align(align_up(size, 16), 16).unwrap();
+            assert_ne!(ptr, null_mut());
+            unsafe { std::alloc::dealloc(ptr.cast(), layout) };
             NULL
         }
         (ptr, size, new_size) => {
-            unsafe { std::alloc::realloc(ptr.cast(), Layout::from_size_align_unchecked(size, 16), new_size) }.cast()
+            assert!(!ptr.is_null());
+            unsafe { std::alloc::realloc(ptr.cast(), Layout::from_size_align(align_up(size, 16), 16).unwrap(), align_up(new_size, 16)) }.cast()
         }
     }
 }

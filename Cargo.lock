@@ -118,7 +118,7 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 [[package]]
 name = "lua53-sys"
 version = "0.1.0"
-source = "git+https://github.com/speedy-lex/lua53-sys#1e63cae01184deb84ab4a0c06373fa59a3f428d1"
+source = "git+https://github.com/speedy-lex/lua53-sys#877418e82817fd4f2a95cb20659bcc29d01012c2"
 dependencies = [
  "bindgen",
  "cc",
@@ -139,10 +139,15 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 [[package]]
 name = "neonucleus"
 version = "0.1.0"
-source = "git+https://github.com/speedy-lex/neonucleus-rs#626e5a3cffbcdb54a4cecfc34b5f916614188feb"
+source = "git+https://github.com/speedy-lex/neonucleus-rs#b76a9c9c9b5aa9aafde130d86790f8f3fd91d22c"
 dependencies = [
  "bindgen",
 ]
+
+[[package]]
+name = "neotar"
+version = "0.1.0"
+source = "git+https://github.com/speedy-lex/neotar#ed21fda270ee3aba094e53afcd2408a53fe73357"
 
 [[package]]
 name = "neoweb"
@@ -150,6 +155,7 @@ version = "0.1.0"
 dependencies = [
  "lua53-sys",
  "neonucleus",
+ "neotar",
 ]
 
 [[package]]

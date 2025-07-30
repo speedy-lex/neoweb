@@ -33,11 +33,18 @@ async function runComputer() {
     try {
         wasm.init();
         let eeprom = await fetchFileBytes("luaBios.lua");
-        let code = wasm.alloc_eeprom(eeprom.byteLength);
-        let data = wasm.alloc_eeprom(1024);
+        let code = wasm.alloc_block(eeprom.byteLength);
+        let data = wasm.alloc_block(1024);
         const wasmMemory = new Uint8Array(wasm.memory.buffer, code, eeprom.byteLength);
         wasmMemory.set(eeprom);
         wasm.load_eeprom(code, eeprom.byteLength, eeprom.byteLength, data, 1024, 0);
+
+        let openos = await fetchFileBytes("openos.ntar");
+        let alloc = wasm.alloc_block(openos.byteLength);
+        const wasmOpenos = new Uint8Array(wasm.memory.buffer, alloc, openos.byteLength);
+        wasmOpenos.set(openos);
+        wasm.load_vfs(alloc, openos.byteLength);
+
         requestAnimationFrame(tickComputer);
     } catch(e) {
         if (e instanceof WebAssembly.RuntimeError && e.message.includes("unreachable")) {
@@ -77,7 +84,7 @@ const importObject = {
     }
 };
 let wasm = undefined;
-createScreen(document.getElementById("container"), 80, 25);
+createScreen(document.getElementById("container"), 80, 3000);
 
 const response = WebAssembly.instantiateStreaming(fetch("neoweb.wasm"), importObject).then(
     async (obj) => {wasm = obj.instance.exports; await runComputer()},
