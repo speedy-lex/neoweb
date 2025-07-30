@@ -159,6 +159,10 @@ unsafe extern "C" fn computer_get_state(lua: *mut lua_State) -> i32 {
     unsafe { lua_pushinteger(lua, nn_getState((*state).computer) as i64) };
     1
 }
+unsafe extern "C" fn computer_beep(lua: *mut lua_State) -> i32 {
+    // TODO: beep
+    0
+}
 unsafe extern "C" fn component_list(lua: *mut lua_State) -> i32 {
     let state = unsafe {
         get_state(lua)
@@ -232,8 +236,8 @@ fn load_env(lua: *mut lua_State) {
     // lua_setfield(lua, computer, "tmpAddress");
     unsafe { lua_pushcclosure(lua, Some(computer_uptime), 0) };
     unsafe { lua_setfield(lua, computer, c"uptime".as_ptr()) };
-    // lua_pushcfunction(lua, testLuaArch_computer_beep);
-    // lua_setfield(lua, computer, "beep");
+    unsafe { lua_pushcclosure(lua, Some(computer_beep), 0) };
+    unsafe { lua_setfield(lua, computer, c"beep".as_ptr()) };
     // lua_pushcfunction(lua, testLuaArch_computer_energy);
     // lua_setfield(lua, computer, "energy");
     // lua_pushcfunction(lua, testLuaArch_computer_maxEnergy);
