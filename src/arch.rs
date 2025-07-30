@@ -1,30 +1,13 @@
 use std::{
-    ffi::c_void,
+    ffi::{c_char, c_void},
     ptr::{null, null_mut},
 };
 
 use lua53_sys::{
-    LUA_OK, LUA_REGISTRYINDEX, LUA_TBOOLEAN, LUA_TNUMBER, LUA_TSTRING, LUA_YIELD, lua_State,
-    lua_close, lua_createtable, lua_getfield, lua_gettop, lua_isinteger, lua_isnumber,
-    lua_newstate, lua_pushboolean, lua_pushcclosure, lua_pushinteger, lua_pushlightuserdata,
-    lua_pushlstring, lua_pushnil, lua_pushnumber, lua_pushstring, lua_resume, lua_setfield,
-    lua_setglobal, lua_seti, lua_settable, lua_settop, lua_toboolean, lua_tointegerx,
-    lua_tolstring, lua_tonumberx, lua_touserdata, lua_type, luaL_checkinteger, luaL_checklstring,
-    luaL_checknumber, luaL_error, luaL_loadbufferx, luaL_openlibs,
+    luaL_argerror, luaL_checkinteger, luaL_checklstring, luaL_checknumber, luaL_error, luaL_loadbufferx, luaL_openlibs, lua_State, lua_checkstack, lua_close, lua_createtable, lua_getfield, lua_gettop, lua_isinteger, lua_isnumber, lua_newstate, lua_pushboolean, lua_pushcclosure, lua_pushinteger, lua_pushlightuserdata, lua_pushlstring, lua_pushnil, lua_pushnumber, lua_pushstring, lua_resume, lua_setfield, lua_setglobal, lua_seti, lua_settable, lua_settop, lua_toboolean, lua_tointegerx, lua_tolstring, lua_tonumberx, lua_touserdata, lua_type, LUA_OK, LUA_REGISTRYINDEX, LUA_TBOOLEAN, LUA_TNUMBER, LUA_TSTRING, LUA_YIELD
 };
 use neonucleus::ffi::{
-    NN_MAX_ARGS, NN_STATE_SWITCH, NN_VALUE_ARRAY, NN_VALUE_BOOL, NN_VALUE_CSTR, NN_VALUE_INT,
-    NN_VALUE_NIL, NN_VALUE_NUMBER, NN_VALUE_STR, NN_VALUE_TABLE, nn_Alloc, nn_addArgument,
-    nn_addHeat, nn_alloc, nn_architecture, nn_clearError, nn_computer, nn_dealloc,
-    nn_fetchSignalValue, nn_findComponent, nn_getAllocator, nn_getArchitecture,
-    nn_getComponentAddress, nn_getComponentTable, nn_getComponentType, nn_getComputerAddress,
-    nn_getComputerMemoryTotal, nn_getEnergy, nn_getError, nn_getMaxEnergy, nn_getReturn,
-    nn_getReturnCount, nn_getState, nn_getSupportedArchitecture, nn_getTemperature,
-    nn_getTmpAddress, nn_getUniverse, nn_getUptime, nn_indexUser, nn_invokeComponentMethod,
-    nn_isOverheating, nn_isOverworked, nn_iterComponent, nn_popSignal, nn_pushSignal, nn_resetCall,
-    nn_resize, nn_setCError, nn_setError, nn_setNextArchitecture, nn_setState, nn_signalSize,
-    nn_strcmp, nn_value, nn_values_boolean, nn_values_dropAll, nn_values_getType,
-    nn_values_integer, nn_values_nil, nn_values_number, nn_values_string,
+    nn_Alloc, nn_addArgument, nn_addHeat, nn_alloc, nn_architecture, nn_clearError, nn_computer, nn_dealloc, nn_deallocStr, nn_fetchSignalValue, nn_findComponent, nn_getAllocator, nn_getArchitecture, nn_getComponentAddress, nn_getComponentTable, nn_getComponentType, nn_getComputerAddress, nn_getComputerMemoryTotal, nn_getEnergy, nn_getError, nn_getMaxEnergy, nn_getReturn, nn_getReturnCount, nn_getState, nn_getSupportedArchitecture, nn_getTemperature, nn_getTmpAddress, nn_getUniverse, nn_getUptime, nn_indexUser, nn_invokeComponentMethod, nn_isOverheating, nn_isOverworked, nn_iterComponent, nn_popSignal, nn_pushSignal, nn_resetCall, nn_resize, nn_setCError, nn_setError, nn_setNextArchitecture, nn_setState, nn_signalSize, nn_strcmp, nn_unicode_char, nn_unicode_indexPermissive, nn_unicode_lenPermissive, nn_value, nn_values_boolean, nn_values_dropAll, nn_values_getType, nn_values_integer, nn_values_nil, nn_values_number, nn_values_string, NN_MAX_ARGS, NN_STATE_BLACKOUT, NN_STATE_BUSY, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_RUNNING, NN_STATE_SETUP, NN_STATE_SWITCH, NN_VALUE_ARRAY, NN_VALUE_BOOL, NN_VALUE_CSTR, NN_VALUE_INT, NN_VALUE_NIL, NN_VALUE_NUMBER, NN_VALUE_STR, NN_VALUE_TABLE
 };
 
 pub const ARCH_TABLE: nn_architecture = nn_architecture {
@@ -151,6 +134,19 @@ unsafe fn push_value(lua: *mut lua_State, val: nn_value) {
         }
     }
 }
+
+unsafe fn pushlstring_safe(lua: *mut lua_State, s: *const i8, len: usize) -> *const c_char {
+    if (unsafe { lua_checkstack(lua, 1) } == 0) {
+        return null();
+    }
+    let state = unsafe { get_state(lua) };
+    let free_space = unsafe { nn_getComputerMemoryTotal((*state).computer) } - unsafe { (*state).mem_usage };
+    if (len * 2 + 64) > free_space { // dk how much space this really needs and its unstable so :/
+        return null();
+    }
+    unsafe { lua_pushlstring(lua, s, len) }
+}
+
 unsafe fn lua_pop(lua: *mut lua_State, n: i32) {
     unsafe { lua_settop(lua, -(n) - 1) }
 }
@@ -421,6 +417,92 @@ unsafe extern "C" fn computer_pop_signal(lua: *mut lua_State) -> i32 {
     }
 }
 
+unsafe extern "C" fn unicode_len(lua: *mut lua_State) -> i32 {
+    let str = unsafe { luaL_checklstring(lua, 1, null_mut()) };
+    unsafe { lua_pushinteger(lua, nn_unicode_lenPermissive(str) as i64) };
+    1
+}
+
+unsafe extern "C" fn unicode_wlen(lua: *mut lua_State) -> i32 {
+    let str = unsafe { luaL_checklstring(lua, 1, null_mut()) };
+    unsafe { lua_pushinteger(lua, nn_unicode_lenPermissive(str) as i64) };
+    1
+}
+
+unsafe extern "C" fn unicode_char(lua: *mut lua_State) -> i32 {
+    let argc = unsafe { lua_gettop(lua) };
+    let mut codepoints: Vec<u32> = Vec::with_capacity(argc as usize);
+    for i in 0..argc {
+        if unsafe { lua_isinteger(lua, i + 1) } == 0 {
+            unsafe { luaL_argerror(lua, i + 1, c"integer expected".as_ptr()) };
+            return 0;
+        }
+        codepoints.push(unsafe { lua_tointegerx(lua, i + 1, null_mut()) } as u32);
+    }
+    let alloc = unsafe { get_alloc(lua) }; 
+    let str = unsafe { nn_unicode_char(alloc, codepoints.as_mut_ptr(), codepoints.len()) };
+    let res = unsafe { lua_pushstring(lua, str) };
+    unsafe { nn_deallocStr(alloc, str) };
+    if !res.is_null() {
+        unsafe { luaL_error(lua, c"out of memoty".as_ptr()) };
+    }
+    1
+}
+unsafe extern "C" fn unicode_sub(lua: *mut lua_State) -> i32 {
+    let str = unsafe { luaL_checklstring(lua, 1, null_mut()) };
+    let mut start = unsafe { luaL_checkinteger(lua, 2) };
+    let len = unsafe { nn_unicode_lenPermissive(str) };
+    let mut stop = len as i64;
+    if unsafe { lua_isinteger(lua, 3) } != 0 {
+        stop = unsafe { luaL_checkinteger(lua, 3) };
+    }
+    // OpenOS does this...
+    if len == 0 {
+        unsafe { lua_pushstring(lua, c"".as_ptr()) };
+        return 1;
+    }
+
+    if start == 0 {
+        start = 1;
+    }
+    if stop == 0 {
+        unsafe { lua_pushstring(lua, c"".as_ptr()) };
+        return 1
+    }
+    if start < 0 {
+        start = len as i64 + start + 1;
+    }
+    if stop < 0 {
+        stop = len as i64 + stop + 1;
+    }
+    
+    if stop > len as i64 {
+        stop = len as i64;
+    }
+
+    if start > stop {
+        unsafe { lua_pushstring(lua, c"".as_ptr()) };
+        return 1;
+    }
+
+    let start_byte = unsafe { nn_unicode_indexPermissive(str, (start - 1) as usize) };
+    let term_byte = unsafe { nn_unicode_indexPermissive(str, stop as usize) };
+
+    let res = unsafe { pushlstring_safe(lua, str.byte_offset(start_byte), (term_byte - start_byte) as usize) };
+    if !res.is_null() {
+        unsafe { luaL_error(lua, c"out of memory".as_ptr()) };
+    }
+    1
+}
+//     const char *res = testLuaArch_pushlstring(L, s + startByte, termByte - startByte);
+//     if (!res) {
+//         luaL_error(L, "out of memory");
+//     }
+
+//     return 1;
+// }
+
+
 fn load_env(lua: *mut lua_State) {
     unsafe { lua_createtable(lua, 0, 10) };
     let computer = unsafe { lua_gettop(lua) };
@@ -490,32 +572,32 @@ fn load_env(lua: *mut lua_State) {
 
     unsafe { lua_createtable(lua, 0, 7) };
     let states = unsafe { lua_gettop(lua) };
-    // lua_pushinteger(L, NN_STATE_SETUP);
-    // lua_setfield(L, states, "setup");
-    // lua_pushinteger(L, NN_STATE_RUNNING);
-    // lua_setfield(L, states, "running");
-    // lua_pushinteger(L, NN_STATE_BUSY);
-    // lua_setfield(L, states, "busy");
-    // lua_pushinteger(L, NN_STATE_BLACKOUT);
-    // lua_setfield(L, states, "blackout");
-    // lua_pushinteger(L, NN_STATE_CLOSING);
-    // lua_setfield(L, states, "closing");
-    // lua_pushinteger(L, NN_STATE_REPEAT);
-    // lua_setfield(L, states, "REPEAT");
-    // lua_pushinteger(L, NN_STATE_SWITCH);
-    // lua_setfield(L, states, "switch");
+    unsafe { lua_pushinteger(lua, NN_STATE_SETUP as _) };
+    unsafe { lua_setfield(lua, states, c"setup".as_ptr()) };
+    unsafe { lua_pushinteger(lua, NN_STATE_RUNNING as _) };
+    unsafe { lua_setfield(lua, states, c"running".as_ptr()) };
+    unsafe { lua_pushinteger(lua, NN_STATE_BUSY as _) };
+    unsafe { lua_setfield(lua, states, c"busy".as_ptr()) };
+    unsafe { lua_pushinteger(lua, NN_STATE_BLACKOUT as _) };
+    unsafe { lua_setfield(lua, states, c"blackout".as_ptr()) };
+    unsafe { lua_pushinteger(lua, NN_STATE_CLOSING as _) };
+    unsafe { lua_setfield(lua, states, c"closing".as_ptr()) };
+    unsafe { lua_pushinteger(lua, NN_STATE_REPEAT as _) };
+    unsafe { lua_setfield(lua, states, c"repeat".as_ptr()) };
+    unsafe { lua_pushinteger(lua, NN_STATE_SWITCH as _) };
+    unsafe { lua_setfield(lua, states, c"switch".as_ptr()) };
     unsafe { lua_setglobal(lua, c"states".as_ptr()) };
 
     unsafe { lua_createtable(lua, 0, 20) };
     let unicode = unsafe { lua_gettop(lua) };
-    // lua_pushcfunction(L, testLuaArch_unicode_sub);
-    // lua_setfield(L, unicode, "sub");
-    // lua_pushcfunction(L, testLuaArch_unicode_len);
-    // lua_setfield(L, unicode, "len");
-    // lua_pushcfunction(L, testLuaArch_unicode_wlen);
-    // lua_setfield(L, unicode, "wlen");
-    // lua_pushcfunction(L, testLuaArch_unicode_char);
-    // lua_setfield(L, unicode, "char");
+    unsafe { lua_pushcclosure(lua, Some(unicode_sub), 0) };
+    unsafe { lua_setfield(lua, unicode, c"sub".as_ptr()) };
+    unsafe { lua_pushcclosure(lua, Some(unicode_len), 0) };
+    unsafe { lua_setfield(lua, unicode, c"len".as_ptr()) };
+    unsafe { lua_pushcclosure(lua, Some(unicode_wlen), 0) };
+    unsafe { lua_setfield(lua, unicode, c"wlen".as_ptr()) };
+    unsafe { lua_pushcclosure(lua, Some(unicode_char), 0) };
+    unsafe { lua_setfield(lua, unicode, c"char".as_ptr()) };
     unsafe { lua_setglobal(lua, c"unicode".as_ptr()) };
 }
 unsafe extern "C" fn setup(computer: *mut nn_computer, _userdata: *mut c_void) -> *mut c_void {
