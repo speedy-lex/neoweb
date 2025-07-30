@@ -4,10 +4,31 @@ use std::{
 };
 
 use lua53_sys::{
-    luaL_argerror, luaL_checkinteger, luaL_checklstring, luaL_checknumber, luaL_error, luaL_loadbufferx, luaL_openlibs, lua_State, lua_checkstack, lua_close, lua_createtable, lua_getfield, lua_gettop, lua_isinteger, lua_isnumber, lua_newstate, lua_pushboolean, lua_pushcclosure, lua_pushinteger, lua_pushlightuserdata, lua_pushlstring, lua_pushnil, lua_pushnumber, lua_pushstring, lua_resume, lua_setfield, lua_setglobal, lua_seti, lua_settable, lua_settop, lua_toboolean, lua_tointegerx, lua_tolstring, lua_tonumberx, lua_touserdata, lua_type, LUA_OK, LUA_REGISTRYINDEX, LUA_TBOOLEAN, LUA_TNUMBER, LUA_TSTRING, LUA_YIELD
+    LUA_OK, LUA_REGISTRYINDEX, LUA_TBOOLEAN, LUA_TNUMBER, LUA_TSTRING, LUA_YIELD, lua_State,
+    lua_checkstack, lua_close, lua_createtable, lua_getfield, lua_gettop, lua_isinteger,
+    lua_isnumber, lua_newstate, lua_pushboolean, lua_pushcclosure, lua_pushinteger,
+    lua_pushlightuserdata, lua_pushlstring, lua_pushnil, lua_pushnumber, lua_pushstring,
+    lua_resume, lua_setfield, lua_setglobal, lua_seti, lua_settable, lua_settop, lua_toboolean,
+    lua_tointegerx, lua_tolstring, lua_tonumberx, lua_touserdata, lua_type, luaL_argerror,
+    luaL_checkinteger, luaL_checklstring, luaL_checknumber, luaL_error, luaL_loadbufferx,
+    luaL_openlibs,
 };
 use neonucleus::ffi::{
-    nn_Alloc, nn_addArgument, nn_addHeat, nn_alloc, nn_architecture, nn_clearError, nn_computer, nn_dealloc, nn_deallocStr, nn_fetchSignalValue, nn_findComponent, nn_getAllocator, nn_getArchitecture, nn_getComponentAddress, nn_getComponentSlot, nn_getComponentTable, nn_getComponentType, nn_getComputerAddress, nn_getComputerMemoryTotal, nn_getEnergy, nn_getError, nn_getMaxEnergy, nn_getReturn, nn_getReturnCount, nn_getState, nn_getSupportedArchitecture, nn_getTableMethod, nn_getTemperature, nn_getTmpAddress, nn_getUniverse, nn_getUptime, nn_indexUser, nn_invokeComponentMethod, nn_isMethodEnabled, nn_isOverheating, nn_isOverworked, nn_iterComponent, nn_methodDoc, nn_popSignal, nn_pushSignal, nn_resetCall, nn_resize, nn_setCError, nn_setError, nn_setNextArchitecture, nn_setState, nn_signalSize, nn_strcmp, nn_unicode_char, nn_unicode_indexPermissive, nn_unicode_lenPermissive, nn_value, nn_values_boolean, nn_values_dropAll, nn_values_getType, nn_values_integer, nn_values_nil, nn_values_number, nn_values_string, NN_MAX_ARGS, NN_STATE_BLACKOUT, NN_STATE_BUSY, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_RUNNING, NN_STATE_SETUP, NN_STATE_SWITCH, NN_VALUE_ARRAY, NN_VALUE_BOOL, NN_VALUE_CSTR, NN_VALUE_INT, NN_VALUE_NIL, NN_VALUE_NUMBER, NN_VALUE_STR, NN_VALUE_TABLE
+    NN_MAX_ARGS, NN_STATE_BLACKOUT, NN_STATE_BUSY, NN_STATE_CLOSING, NN_STATE_REPEAT,
+    NN_STATE_RUNNING, NN_STATE_SETUP, NN_STATE_SWITCH, NN_VALUE_ARRAY, NN_VALUE_BOOL,
+    NN_VALUE_CSTR, NN_VALUE_INT, NN_VALUE_NIL, NN_VALUE_NUMBER, NN_VALUE_STR, NN_VALUE_TABLE,
+    nn_Alloc, nn_addArgument, nn_addHeat, nn_alloc, nn_architecture, nn_clearError, nn_computer,
+    nn_dealloc, nn_deallocStr, nn_fetchSignalValue, nn_findComponent, nn_getAllocator,
+    nn_getArchitecture, nn_getComponentAddress, nn_getComponentSlot, nn_getComponentTable,
+    nn_getComponentType, nn_getComputerAddress, nn_getComputerMemoryTotal, nn_getEnergy,
+    nn_getError, nn_getMaxEnergy, nn_getReturn, nn_getReturnCount, nn_getState,
+    nn_getSupportedArchitecture, nn_getTableMethod, nn_getTemperature, nn_getTmpAddress,
+    nn_getUniverse, nn_getUptime, nn_indexUser, nn_invokeComponentMethod, nn_isMethodEnabled,
+    nn_isOverheating, nn_isOverworked, nn_iterComponent, nn_methodDoc, nn_popSignal, nn_pushSignal,
+    nn_resetCall, nn_resize, nn_setCError, nn_setError, nn_setNextArchitecture, nn_setState,
+    nn_signalSize, nn_strcmp, nn_unicode_char, nn_unicode_indexPermissive,
+    nn_unicode_lenPermissive, nn_value, nn_values_boolean, nn_values_dropAll, nn_values_getType,
+    nn_values_integer, nn_values_nil, nn_values_number, nn_values_string,
 };
 
 pub const ARCH_TABLE: nn_architecture = nn_architecture {
@@ -140,8 +161,10 @@ unsafe fn pushlstring_safe(lua: *mut lua_State, s: *const i8, len: usize) -> *co
         return null();
     }
     let state = unsafe { get_state(lua) };
-    let free_space = unsafe { nn_getComputerMemoryTotal((*state).computer) } - unsafe { (*state).mem_usage };
-    if (len * 2 + 64) > free_space { // dk how much space this really needs and its unstable so :/
+    let free_space =
+        unsafe { nn_getComputerMemoryTotal((*state).computer) } - unsafe { (*state).mem_usage };
+    if (len * 2 + 64) > free_space {
+        // dk how much space this really needs and its unstable so :/
         return null();
     }
     unsafe { lua_pushlstring(lua, s, len) }
@@ -490,14 +513,18 @@ unsafe extern "C" fn component_methods(lua: *mut lua_State) -> i32 {
         let table = nn_getComponentTable(component);
         lua_createtable(lua, 0, 0);
         let methods = lua_gettop(lua);
-        
+
         let mut i = 0;
         loop {
             let mut direct = false;
             let name = nn_getTableMethod(table, i, &mut direct as *mut _);
-            if name.is_null() { break }
+            if name.is_null() {
+                break;
+            }
             i += 1;
-            if !nn_isMethodEnabled(component, name) { continue }
+            if !nn_isMethodEnabled(component, name) {
+                continue;
+            }
             lua_pushboolean(lua, direct as i32);
             lua_setfield(lua, methods, name);
         }
@@ -527,7 +554,7 @@ unsafe extern "C" fn unicode_char(lua: *mut lua_State) -> i32 {
         }
         codepoints.push(unsafe { lua_tointegerx(lua, i + 1, null_mut()) } as u32);
     }
-    let alloc = unsafe { get_alloc(lua) }; 
+    let alloc = unsafe { get_alloc(lua) };
     let str = unsafe { nn_unicode_char(alloc, codepoints.as_mut_ptr(), codepoints.len()) };
     let res = unsafe { lua_pushstring(lua, str) };
     unsafe { nn_deallocStr(alloc, str) };
@@ -555,7 +582,7 @@ unsafe extern "C" fn unicode_sub(lua: *mut lua_State) -> i32 {
     }
     if stop == 0 {
         unsafe { lua_pushstring(lua, c"".as_ptr()) };
-        return 1
+        return 1;
     }
     if start < 0 {
         start = len as i64 + start + 1;
@@ -563,7 +590,7 @@ unsafe extern "C" fn unicode_sub(lua: *mut lua_State) -> i32 {
     if stop < 0 {
         stop = len as i64 + stop + 1;
     }
-    
+
     if stop > len as i64 {
         stop = len as i64;
     }
@@ -576,7 +603,13 @@ unsafe extern "C" fn unicode_sub(lua: *mut lua_State) -> i32 {
     let start_byte = unsafe { nn_unicode_indexPermissive(str, (start - 1) as usize) };
     let term_byte = unsafe { nn_unicode_indexPermissive(str, stop as usize) };
 
-    let res = unsafe { pushlstring_safe(lua, str.byte_offset(start_byte), (term_byte - start_byte) as usize) };
+    let res = unsafe {
+        pushlstring_safe(
+            lua,
+            str.byte_offset(start_byte),
+            (term_byte - start_byte) as usize,
+        )
+    };
     if !res.is_null() {
         unsafe { luaL_error(lua, c"out of memory".as_ptr()) };
     }
