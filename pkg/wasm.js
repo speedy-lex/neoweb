@@ -84,7 +84,7 @@ const importObject = {
     }
 };
 let wasm = undefined;
-createScreen(document.getElementById("container"), 80, 3000);
+createScreen(document.getElementById("container"), 80, 25);
 
 const response = WebAssembly.instantiateStreaming(fetch("neoweb.wasm"), importObject).then(
     async (obj) => {wasm = obj.instance.exports; await runComputer()},
