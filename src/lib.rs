@@ -1,7 +1,7 @@
 use core::slice;
 use std::{alloc::{alloc, dealloc, Layout}, ptr::null_mut};
 
-use neonucleus::ffi::{nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getContext, nn_getError, nn_gpuControl, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_setDepth, nn_tickComputer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem};
+use neonucleus::ffi::{nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getContext, nn_getError, nn_getPixel, nn_gpuControl, nn_isOn, nn_loadCoreComponentTables, nn_maxResolution, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_screen, nn_setDepth, nn_tickComputer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem};
 
 use crate::context::{get_context, init_random};
 use crate::arch::ARCH_TABLE;
@@ -20,6 +20,7 @@ fn set_cell(id: usize, x: usize, y: usize, ch: char) {
 }
 
 static mut COMPUTER: *mut nn_computer = null_mut();
+static mut SCREEN: *mut nn_screen = null_mut();
 
 #[unsafe(no_mangle)]
 pub extern "C" fn init() {
@@ -33,7 +34,9 @@ pub extern "C" fn init() {
 
     let mut ctx = get_context();
     let screen = unsafe { nn_newScreen(&raw mut ctx, 80, 25, 24, 16, 256) };
-    unsafe { nn_setDepth(screen, 8) }; // looks cool
+    assert_ne!(screen, null_mut());
+    unsafe { SCREEN = screen };
+    unsafe { nn_setDepth(screen, 8) };
     unsafe { nn_addKeyboard(screen, c"browser keyboard".as_ptr().cast_mut()) };
     unsafe { nn_mountKeyboard(computer, c"browser keyboard".as_ptr().cast_mut(), 2) };
     unsafe { nn_addScreen(computer, null_mut(), 2, screen) };
@@ -172,9 +175,20 @@ pub unsafe extern "C" fn load_vfs(ptr: *mut u8, size: i32) {
 pub extern "C" fn tick() {
     let computer = unsafe { COMPUTER };
     assert_ne!(computer, null_mut());
+    let screen = unsafe { SCREEN };
+    assert_ne!(screen, null_mut());
     let txt = format!("{}", unsafe { nn_tickComputer(computer) });
     for (i, ch) in txt.chars().enumerate() {
         set_cell(0, i, 0, ch);
+    }
+    if unsafe { nn_isOn(screen) } {
+        set_cell(0, 79, 24, 'x');
+        for y in 0..25 {
+            for x in 0..80 {
+                let pixel = unsafe { nn_getPixel(screen, x as i32, y as i32) };
+                set_cell(0, x, y, char::from_u32(pixel.codepoint).unwrap_or_default());
+            }
+        }
     }
     let mut error = unsafe { nn_getError(computer) };
     if !error.is_null() {
