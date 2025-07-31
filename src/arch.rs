@@ -610,7 +610,7 @@ unsafe extern "C" fn unicode_sub(lua: *mut lua_State) -> i32 {
             (term_byte - start_byte) as usize,
         )
     };
-    if !res.is_null() {
+    if res.is_null() { // thanks Calion
         unsafe { luaL_error(lua, c"out of memory".as_ptr()) };
     }
     1
