@@ -139,7 +139,7 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 [[package]]
 name = "neonucleus"
 version = "0.1.0"
-source = "git+https://github.com/speedy-lex/neonucleus-rs#b76a9c9c9b5aa9aafde130d86790f8f3fd91d22c"
+source = "git+https://github.com/speedy-lex/neonucleus-rs#8cda9d7d081260f2b8dff9c8aff3f681f8212465"
 dependencies = [
  "bindgen",
 ]

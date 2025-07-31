@@ -95,7 +95,7 @@ unsafe fn get_value(lua: *mut lua_State, idx: i32) -> nn_value {
         let s = unsafe { lua_tolstring(lua, idx, &raw mut len) };
         unsafe { nn_values_string(alloc, s, len) }
     } else if ty == LUA_TNUMBER && unsafe { lua_isinteger(lua, idx) } != 0 {
-        unsafe { nn_values_integer(lua_tointegerx(lua, idx, null_mut()) as isize) }
+        unsafe { nn_values_integer(lua_tointegerx(lua, idx, null_mut())) }
     } else if ty == LUA_TNUMBER && unsafe { lua_isnumber(lua, idx) } != 0 {
         unsafe { nn_values_number(lua_tonumberx(lua, idx, null_mut())) }
     } else {
@@ -109,7 +109,7 @@ unsafe fn push_value(lua: *mut lua_State, val: nn_value) {
             unsafe { lua_pushnil(lua) };
         }
         NN_VALUE_INT => {
-            unsafe { lua_pushinteger(lua, val.__bindgen_anon_1.integer as i64) };
+            unsafe { lua_pushinteger(lua, val.__bindgen_anon_1.integer) };
         }
         NN_VALUE_NUMBER => {
             unsafe { lua_pushnumber(lua, val.__bindgen_anon_1.number) };
