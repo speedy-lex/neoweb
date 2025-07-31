@@ -23,6 +23,10 @@ unsafe extern "C" {
     #[link_name = "set_cell"]
     fn _set_cell(id: i32, x: i32, y: i32, ch: i32);
 }
+#[link(wasm_import_module = "neoweb_utils")]
+unsafe extern "C" {
+    fn debug_error(ptr: *const u8);
+}
 
 fn set_cell(id: usize, x: usize, y: usize, ch: char) {
     unsafe { _set_cell(id as i32, x as i32, y as i32, ch as i32) };
@@ -237,14 +241,9 @@ pub extern "C" fn tick() {
             }
         }
     }
-    let mut error = unsafe { nn_getError(computer) };
+    let error = unsafe { nn_getError(computer) };
     if !error.is_null() {
-        let mut i = 0;
-        while unsafe { *error } != 0 {
-            set_cell(0, i, 1, unsafe { *error } as u8 as char);
-            error = unsafe { error.add(1) };
-            i += 1;
-        }
+        unsafe { debug_error(error.cast()) }
         unreachable!();
     }
 }

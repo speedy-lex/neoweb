@@ -63,6 +63,22 @@ const importObject = {
     neoweb_utils: {
         get_time: () => {
             return Date.now() / 1000;
+        },
+        debug_log: (ptr) => {
+            const wasmMemory = new Uint8Array(wasm.memory.buffer);
+            let end = ptr;
+            while (wasmMemory[end] !== 0) end++;
+            const slice = wasmMemory.subarray(ptr, end);
+            const str = new TextDecoder("utf-8").decode(slice);
+            console.log('[wasm]:', str);
+        },
+        debug_error: (ptr) => {
+            const wasmMemory = new Uint8Array(wasm.memory.buffer);
+            let end = ptr;
+            while (wasmMemory[end] !== 0) end++;
+            const slice = wasmMemory.subarray(ptr, end);
+            const str = new TextDecoder("utf-8").decode(slice);
+            console.error('[wasm]:', str);
         }
     },
     libc: {
