@@ -558,8 +558,8 @@ unsafe extern "C" fn unicode_char(lua: *mut lua_State) -> i32 {
     let str = unsafe { nn_unicode_char(alloc, codepoints.as_mut_ptr(), codepoints.len()) };
     let res = unsafe { lua_pushstring(lua, str) };
     unsafe { nn_deallocStr(alloc, str) };
-    if !res.is_null() {
-        unsafe { luaL_error(lua, c"out of memoty".as_ptr()) };
+    if res.is_null() {
+        unsafe { luaL_error(lua, c"out of memory".as_ptr()) };
     }
     1
 }
