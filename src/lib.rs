@@ -7,9 +7,10 @@ use std::{
 use neonucleus::ffi::{
     nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture,
     nn_computer, nn_eepromControl, nn_filesystemControl, nn_getError, nn_getPixel, nn_gpuControl,
-    nn_isOn, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_screen,
-    nn_setDepth, nn_tickComputer, nn_veepromOptions, nn_vfilesystemImageNode,
-    nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem,
+    nn_isOn, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen,
+    nn_pushSignal, nn_screen, nn_setDepth, nn_tickComputer, nn_value, nn_values_cstring,
+    nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions,
+    nn_volatileEEPROM, nn_volatileFilesystem,
 };
 use neotar::Deserialize;
 
@@ -223,6 +224,28 @@ pub unsafe extern "C" fn load_vfs(ptr: *mut u8, size: i32) {
     };
     unsafe { nn_addFileSystem(computer, null_mut(), 1, vfs) };
     unsafe { dealloc(ptr, Layout::from_size_align(size as usize, 1).unwrap()) };
+}
+
+/// # Safety
+/// Perhaps
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn on_key(char: i32, code: i32, released: bool) {
+    let computer = unsafe { COMPUTER };
+    assert_ne!(computer, null_mut());
+    unsafe {
+        let mut values: [nn_value; 5] = [
+            nn_values_cstring(if released {
+                c"key_up".as_ptr()
+            } else {
+                c"key_down".as_ptr()
+            }),
+            nn_values_cstring(c"browser keyboard".as_ptr()),
+            nn_values_integer(char as i64),
+            nn_values_integer(code as i64),
+            nn_values_cstring(c"USER".as_ptr()),
+        ];
+        nn_pushSignal(computer, values.as_mut_ptr(), 5);
+    }
 }
 
 #[unsafe(no_mangle)]
