@@ -11,6 +11,7 @@ use neonucleus::ffi::{
     nn_setDepth, nn_tickComputer, nn_veepromOptions, nn_vfilesystemImageNode,
     nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem,
 };
+use neotar::Deserialize;
 
 use crate::arch::ARCH_TABLE;
 use crate::context::{get_context, init_random};
@@ -157,23 +158,25 @@ pub unsafe extern "C" fn load_vfs(ptr: *mut u8, size: i32) {
     let computer = unsafe { COMPUTER };
     assert_ne!(computer, null_mut());
 
-    let root_len = u32::from_be_bytes(unsafe { ptr.cast::<[u8; 4]>().read() });
-    let bytes = unsafe { slice::from_raw_parts(ptr.add(4), size as usize - 4) };
-    let entries = neotar::read_entries_recursive(bytes);
+    let bytes = unsafe { slice::from_raw_parts(ptr, size as usize) };
+    let file = neotar::File::read(bytes).0;
+    file.sanity_check();
+    let section = file.sections[0];
+    let (entries, root_len) = neotar::files::read_entries_recursive(&section);
 
     let mut image = Vec::with_capacity(entries.len());
 
     for entry in entries.iter() {
         let name = entry.name.as_ptr();
         match entry.entry {
-            neotar::EntryInner::File(contents) => {
+            neotar::files::EntryInner::File(contents) => {
                 image.push(nn_vfilesystemImageNode {
                     name,
                     data: contents.as_ptr().cast(),
                     len: contents.len(),
                 });
             }
-            neotar::EntryInner::Directory(len) => {
+            neotar::files::EntryInner::Directory(len) => {
                 image.push(nn_vfilesystemImageNode {
                     name,
                     data: null_mut(),
