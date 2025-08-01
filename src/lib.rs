@@ -5,12 +5,7 @@ use std::{
 };
 
 use neonucleus::ffi::{
-    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture,
-    nn_computer, nn_eepromControl, nn_filesystemControl, nn_getError, nn_getPixel, nn_gpuControl,
-    nn_isOn, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen,
-    nn_pushSignal, nn_screen, nn_setDepth, nn_tickComputer, nn_value, nn_values_cstring,
-    nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions,
-    nn_volatileEEPROM, nn_volatileFilesystem,
+    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getError, nn_getPixel, nn_getRoomTemperature, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_rand, nn_removeHeat, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_tickComputer, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem
 };
 use neotar::Deserialize;
 
@@ -254,6 +249,21 @@ pub extern "C" fn tick() {
     assert_ne!(computer, null_mut());
     let screen = unsafe { SCREEN };
     assert_ne!(screen, null_mut());
+
+    unsafe { nn_setEnergyInfo(computer, 5000.0, 5000.0) };
+        
+    let heat = unsafe { nn_getTemperature(computer) };
+    let room_heat = unsafe { nn_getRoomTemperature(computer) };
+    
+    let mut rng = get_context().rng;
+    let tx = 0.1;
+    unsafe { nn_removeHeat(computer, 1.0/60.0 * (nn_rand(&raw mut rng) % 3) as f64 * tx * (heat - room_heat)) };
+    
+    if unsafe { nn_isOverheating(computer) } {
+        unsafe { debug_error(c"overheating".as_ptr().cast()) };
+        return;
+    }
+
     let txt = format!("{}", unsafe { nn_tickComputer(computer) });
     for (i, ch) in txt.chars().enumerate() {
         set_cell(0, i, 0, ch);
