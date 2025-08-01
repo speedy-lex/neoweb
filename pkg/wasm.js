@@ -92,7 +92,6 @@ document.onkeydown = function(e) {
     if (e.key == "Control") { key = String.fromCodePoint(0) }
     if (e.key == "Tab") { key = "\t" }
     if (e.key == "Meta") { return }
-    console.log(e);
     wasm.on_key(key.charCodeAt(0), ch_to_oc_map[e.key] || 0, e.type == "keyup");
 }
 document.onkeyup = document.onkeydown
