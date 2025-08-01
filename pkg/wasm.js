@@ -82,16 +82,25 @@ ch_to_oc_map["`"] = 0x29;
 ch_to_oc_map["Backspace"] = 0x0E;
 ch_to_oc_map["Shift"] = 0x2A;
 ch_to_oc_map["Control"] = 0x1D;
+ch_to_oc_map["ArrowRight"] = 0xCD;
+ch_to_oc_map["ArrowLeft"] = 0xCB;
+ch_to_oc_map["ArrowDown"] = 0xD0;
+ch_to_oc_map["ArrowUp"] = 0xC8;
+ch_to_oc_map["Delete"] = 0xD3;
+ch_to_oc_map["Home"] = 0xC7;
+ch_to_oc_map["End"] = 0xCF;
+ch_to_oc_map["PageUp"] = 0xC9;
+ch_to_oc_map["PageDown"] = 0xD1;
 
 document.onkeydown = function(e) {
     e.preventDefault();
     let key = e.key;
+    let null_key = String.fromCodePoint(0);
     if (e.key == "Enter") { key = "\r" }
     if (e.key == "Backspace") { key = "\b" }
-    if (e.key == "Shift") { key = String.fromCodePoint(0) }
-    if (e.key == "Control") { key = String.fromCodePoint(0) }
     if (e.key == "Tab") { key = "\t" }
     if (e.key == "Meta") { return }
+    if (e.key.length > 1) { key = null_key }
     wasm.on_key(key.charCodeAt(0), ch_to_oc_map[e.key] || 0, e.type == "keyup");
 }
 document.onkeyup = document.onkeydown
