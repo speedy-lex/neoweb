@@ -124,7 +124,7 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 [[package]]
 name = "lua53-sys"
 version = "0.1.0"
-source = "git+https://github.com/speedy-lex/lua53-sys#06962d8830d09f2b9eb66233dda0fb6e8d9ef693"
+source = "git+https://github.com/speedy-lex/lua53-sys#823b43f68e35f58fa3fcf689b9a637036767beb8"
 dependencies = [
  "bindgen",
  "cc",
@@ -146,7 +146,7 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 [[package]]
 name = "neonucleus"
 version = "0.1.0"
-source = "git+https://github.com/speedy-lex/neonucleus-rs#ca9df4a9d65f5a71c797c90bb0f9a0ad4c7c5788"
+source = "git+https://github.com/speedy-lex/neonucleus-rs#e4d1631a0c775ea76860c9d7fb2dd00399f8731b"
 dependencies = [
  "bindgen",
 ]
