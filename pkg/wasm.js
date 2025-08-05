@@ -3,6 +3,20 @@ function wasmSetCell(id, x, y, val) {
     setCell(id, x, y, t);
 }
 
+async function fetchFileBytesCompressed(url) {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.status}`);
+    }
+
+    const decompressedStream = response.body.pipeThrough(new DecompressionStream("gzip"));
+
+    const arrayBuffer = await new Response(decompressedStream).arrayBuffer();
+    const byteArray = new Uint8Array(arrayBuffer);
+
+    return byteArray;
+}
 async function fetchFileBytes(url) {
     const response = await fetch(url);
 
@@ -115,7 +129,7 @@ async function runComputer() {
         wasmMemory.set(eeprom);
         wasm.load_eeprom(code, eeprom.byteLength, eeprom.byteLength, data, 1024, 0);
 
-        let openos = await fetchFileBytes("openos.ntar");
+        let openos = await fetchFileBytesCompressed("openos.ntar.gz");
         let alloc = wasm.alloc_block(openos.byteLength);
         const wasmOpenos = new Uint8Array(wasm.memory.buffer, alloc, openos.byteLength);
         wasmOpenos.set(openos);
@@ -178,6 +192,13 @@ const importObject = {
 let wasm = undefined;
 createScreen(document.getElementById("container"), 80, 25);
 
-const response = WebAssembly.instantiateStreaming(fetch("neoweb.wasm"), importObject).then(
-    async (obj) => {wasm = obj.instance.exports; await runComputer()},
-);
+const response = await fetch("neoweb.wasm.gz");
+const decompressedStream = response.body.pipeThrough(new DecompressionStream("gzip"));
+
+const buffer = await new Response(decompressedStream).arrayBuffer();
+
+const result = await WebAssembly.instantiate(buffer, importObject);
+
+wasm = result.instance.exports;
+
+await runComputer(); // This should work now

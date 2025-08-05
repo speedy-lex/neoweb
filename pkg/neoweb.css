@@ -9,7 +9,8 @@
     grid-template-columns: repeat(var(--cols), 1fr);
     grid-template-rows: repeat(var(--rows), 1fr);
     font-size: calc(200cqi / var(--cols));
-    width: 100%;
+    max-width: 100cqw;
+    max-height: 100cqh;
     aspect-ratio: calc(var(--cols) / var(--rows) / 2);
     white-space: nowrap;
     background: black;
@@ -25,7 +26,4 @@
 
     white-space: nowrap;
     line-height: 1;
-}
-body {
-    margin: 0;
 }
