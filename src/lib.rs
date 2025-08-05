@@ -2,7 +2,7 @@
 
 use core::slice;
 use std::{
-    alloc::{alloc, dealloc, Layout}, panic::{self, PanicHookInfo}, ptr::null_mut
+    alloc::{alloc, dealloc, Layout}, ptr::null_mut
 };
 
 use neonucleus::ffi::{
@@ -37,7 +37,7 @@ static mut SCREEN: *mut nn_screen = null_mut();
 #[unsafe(no_mangle)]
 pub extern "C" fn init() {
     #[cfg(debug_assertions)]
-    panic::set_hook(Box::new(panic_hook));
+    std::panic::set_hook(Box::new(panic_hook));
 
     init_random();
     let universe = unsafe { neonucleus::ffi::nn_newUniverse(get_context()) };
@@ -302,7 +302,7 @@ pub extern "C" fn tick() {
 }
 
 #[cfg(debug_assertions)]
-fn panic_hook(info: &PanicHookInfo) {
+fn panic_hook(info: &std::panic::PanicHookInfo) {
     unsafe { debug_error(c"PANIC".as_ptr()) };
     let mut str = format!("{:?}", info.location());
     str.push('\0');
