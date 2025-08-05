@@ -2,6 +2,7 @@
     font-family: 'unscii-16';
     src: url('./unscii-16-full.woff') format('woff'), /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
             url('./unscii-16-full.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
+    font-weight: 400;
 }
 .screen {
     display: grid;
@@ -15,7 +16,9 @@
     white-space: nowrap;
     background: black;
     color: lime;
-    font-family: 'unscii-16';
+    font-family: 'unscii-16', monospace;
+    font-synthesis: none;
+    font-weight: bold;
     image-rendering: pixelated;
 }
 .cell {
