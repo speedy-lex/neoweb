@@ -1,11 +1,12 @@
+#![feature(panic_payload_as_str)]
+
 use core::slice;
 use std::{
-    alloc::{Layout, alloc, dealloc},
-    ptr::null_mut,
+    alloc::{alloc, dealloc, Layout}, panic::{self, PanicHookInfo}, ptr::null_mut
 };
 
 use neonucleus::ffi::{
-    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getError, nn_getPixel, nn_getRoomTemperature, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_rand, nn_removeHeat, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_tickComputer, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem
+    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getError, nn_getPixel, nn_getRoomTemperature, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_rand, nn_removeHeat, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_tickComputer, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem, NN_STATE_BLACKOUT, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_SWITCH
 };
 use neotar::Deserialize;
 
@@ -22,7 +23,8 @@ unsafe extern "C" {
 }
 #[link(wasm_import_module = "neoweb_utils")]
 unsafe extern "C" {
-    fn debug_error(ptr: *const u8);
+    fn debug_log(ptr: *const i8);
+    fn debug_error(ptr: *const i8);
 }
 
 fn set_cell(id: usize, x: usize, y: usize, ch: char) {
@@ -34,6 +36,9 @@ static mut SCREEN: *mut nn_screen = null_mut();
 
 #[unsafe(no_mangle)]
 pub extern "C" fn init() {
+    #[cfg(debug_assertions)]
+    panic::set_hook(Box::new(panic_hook));
+
     init_random();
     let universe = unsafe { neonucleus::ffi::nn_newUniverse(get_context()) };
     assert_ne!(universe, null_mut());
@@ -260,13 +265,25 @@ pub extern "C" fn tick() {
     unsafe { nn_removeHeat(computer, 1.0/60.0 * (nn_rand(&raw mut rng) % 3) as f64 * tx * (heat - room_heat)) };
     
     if unsafe { nn_isOverheating(computer) } {
-        unsafe { debug_error(c"overheating".as_ptr().cast()) };
+        unsafe { debug_error(c"overheating".as_ptr()) };
         return;
     }
 
-    let txt = format!("{}", unsafe { nn_tickComputer(computer) });
-    for (i, ch) in txt.chars().enumerate() {
-        set_cell(0, i, 0, ch);
+    let state = unsafe { nn_tickComputer(computer) };
+    match state {
+        NN_STATE_SWITCH => {
+            unsafe { debug_log(c"state switch".as_ptr()) };
+        }
+        NN_STATE_BLACKOUT => {
+            unsafe { debug_log(c"blackout".as_ptr()) };
+        }
+        NN_STATE_REPEAT => {
+            unsafe { debug_log(c"reboot".as_ptr()) };
+        }
+        NN_STATE_CLOSING => {
+            unsafe { debug_log(c"shutdown".as_ptr()) };
+        }
+        _ => {}
     }
     if unsafe { nn_isOn(screen) } {
         set_cell(0, 79, 24, 'x');
@@ -282,4 +299,18 @@ pub extern "C" fn tick() {
         unsafe { debug_error(error.cast()) }
         unreachable!();
     }
+}
+
+#[cfg(debug_assertions)]
+fn panic_hook(info: &PanicHookInfo) {
+    unsafe { debug_error(c"PANIC".as_ptr()) };
+    let mut str = format!("{:?}", info.location());
+    str.push('\0');
+    let bytes = str.into_bytes();
+    unsafe { debug_error(bytes.as_ptr().cast()) };
+
+    let mut str = format!("{:?}", info.payload_as_str());
+    str.push('\0');
+    let bytes = str.into_bytes();
+    unsafe { debug_error(bytes.as_ptr().cast()) };
 }

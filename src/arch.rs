@@ -103,7 +103,7 @@ unsafe fn get_value(lua: *mut lua_State, idx: i32) -> nn_value {
     }
 }
 unsafe fn push_value(lua: *mut lua_State, val: nn_value) {
-    let t = unsafe { nn_values_getType(val) } as u32;
+    let t = unsafe { nn_values_getType(val) } as i32;
     match t {
         NN_VALUE_NIL => {
             unsafe { lua_pushnil(lua) };
@@ -339,7 +339,7 @@ unsafe extern "C" fn computer_set_architecture(lua: *mut lua_State) -> i32 {
                 break;
             }
             if nn_strcmp((*arch).archName, requested) == 0 {
-                nn_setState((*state).computer, NN_STATE_SWITCH as i32);
+                nn_setState((*state).computer, NN_STATE_SWITCH);
                 nn_setNextArchitecture((*state).computer, arch);
                 return 0;
             }
@@ -411,7 +411,7 @@ unsafe extern "C" fn computer_push_signal(lua: *mut lua_State) -> i32 {
         let state = get_state(lua);
         luaL_checklstring(lua, 1, null_mut());
         let argc = lua_gettop(lua);
-        if argc as u32 > NN_MAX_ARGS {
+        if argc > NN_MAX_ARGS {
             luaL_error(lua, c"too many arguments".as_ptr());
         }
         let mut args: Vec<nn_value> = Vec::with_capacity(argc as usize);
