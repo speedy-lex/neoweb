@@ -6,7 +6,7 @@ use std::{
 };
 
 use neonucleus::ffi::{
-    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getComputerUserData, nn_getError, nn_getPixel, nn_getRoomTemperature, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_rand, nn_removeHeat, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_tickComputer, nn_universe, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem, NN_STATE_BLACKOUT, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_SWITCH
+    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getComputerUserData, nn_getError, nn_getPixel, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_removeHeat, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_tickComputer, nn_universe, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem, NN_STATE_BLACKOUT, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_SWITCH
 };
 use neotar::Deserialize;
 
@@ -55,7 +55,7 @@ pub extern "C" fn new_computer() -> *mut nn_computer {
             c"test".as_ptr().cast_mut(),
             (&ARCH_TABLE as *const nn_architecture).cast_mut(),
             Box::into_raw(Box::new(1_i32)).cast(),
-            1024 * 1024 * 64,
+            1024 * 1024 * 2,
             16,
         )
     };
@@ -277,14 +277,10 @@ pub unsafe extern "C" fn on_key(computer: *mut nn_computer, char: i32, code: i32
 pub unsafe extern "C" fn tick(computer: *mut nn_computer) {
     assert_ne!(computer, null_mut());
 
-    unsafe { nn_setEnergyInfo(computer, 5000.0, 5000.0) };
+    unsafe { nn_setEnergyInfo(computer, f64::INFINITY, f64::INFINITY) };
         
     let heat = unsafe { nn_getTemperature(computer) };
-    let room_heat = unsafe { nn_getRoomTemperature(computer) };
-    
-    let mut rng = get_context().rng;
-    let tx = 0.1;
-    unsafe { nn_removeHeat(computer, 1.0/60.0 * (nn_rand(&raw mut rng) % 3) as f64 * tx * (heat - room_heat)) };
+    unsafe { nn_removeHeat(computer, heat) };
     
     if unsafe { nn_isOverheating(computer) } {
         unsafe { debug_error(c"overheating".as_ptr()) };
