@@ -110,9 +110,9 @@ class Screen {
 }
 window.nwScreen = Screen;
 
-function wasmSetCell(id, x, y, val) {
+function wasmSetCell(id, x, y, val, fg, bg) {
     const t = String.fromCodePoint(val);
-    setCell(id, x, y, t);
+    setCell(id, x, y, t, fg, bg);
 }
 
 function tickComputer() {

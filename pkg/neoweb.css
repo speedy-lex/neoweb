@@ -7,6 +7,8 @@
     width: 100%;
     max-width: 100cqw;
     max-height: 100cqh;
+    object-fit: contain;
+    object-position: left;
     aspect-ratio: calc(var(--cols) / var(--rows) / 2);
     image-rendering: pixelated;
     image-rendering: crisp-edges;

@@ -6,7 +6,7 @@ use std::{
 };
 
 use neonucleus::ffi::{
-    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getComputerUserData, nn_getError, nn_getPixel, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_removeHeat, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_tickComputer, nn_universe, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem, NN_STATE_BLACKOUT, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_SWITCH
+    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getComputerUserData, nn_getDepth, nn_getError, nn_getPaletteColor, nn_getPixel, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mapColor, nn_mapDepth, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_removeHeat, nn_scrchr_t, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_setPixel, nn_tickComputer, nn_universe, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem, NN_STATE_BLACKOUT, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_SWITCH
 };
 use neotar::Deserialize;
 
@@ -16,10 +16,12 @@ use crate::context::{get_context, init_random};
 mod arch;
 mod context;
 
+const LEGACY_COLORS: bool = true;
+
 #[link(wasm_import_module = "neoweb_console")]
 unsafe extern "C" {
     #[link_name = "set_cell"]
-    fn _set_cell(id: i32, x: i32, y: i32, ch: i32);
+    fn _set_cell(id: i32, x: i32, y: i32, ch: i32, fg: i32, bg: i32);
 }
 #[link(wasm_import_module = "neoweb_utils")]
 unsafe extern "C" {
@@ -27,8 +29,8 @@ unsafe extern "C" {
     fn debug_error(ptr: *const i8);
 }
 
-fn set_cell(id: usize, x: usize, y: usize, ch: char) {
-    unsafe { _set_cell(id as i32, x as i32, y as i32, ch as i32) };
+fn set_cell(id: usize, x: usize, y: usize, ch: char, fg: i32, bg: i32) {
+    unsafe { _set_cell(id as i32, x as i32, y as i32, ch as i32, fg, bg) };
 }
 
 static mut UNIVERSE: *mut nn_universe = null_mut();
@@ -97,6 +99,17 @@ pub unsafe extern "C" fn new_screen(computer: *mut nn_computer, add_kb: bool) ->
     if add_kb {
         unsafe { nn_addKeyboard(screen, c"browser keyboard".as_ptr().cast_mut()) };
         unsafe { nn_mountKeyboard(computer, c"browser keyboard".as_ptr().cast_mut(), *slot) };
+    }
+    for y in 0..25 {
+        for x in 0..80 {
+            unsafe { nn_setPixel(screen, x, y, nn_scrchr_t {
+                codepoint: 0,
+                fg: 0xffffff,
+                bg: 0,
+                isFgPalette: false,
+                isBgPalette: false,
+            }) };
+        }
     }
     unsafe { nn_addScreen(computer, null_mut(), *slot, screen) };
 
@@ -317,10 +330,15 @@ pub unsafe extern "C" fn update_screen(screen: *mut nn_screen, id: usize) {
     assert_ne!(screen, null_mut());
 
     if unsafe { nn_isOn(screen) } {
+        let depth = unsafe { nn_getDepth(screen) };
         for y in 0..25 {
             for x in 0..80 {
                 let pixel = unsafe { nn_getPixel(screen, x as i32, y as i32) };
-                set_cell(id, x, y, char::from_u32(pixel.codepoint).unwrap_or_default());
+                let fg = 
+                    unsafe { nn_mapDepth(pixel.fg, depth, LEGACY_COLORS) };
+                let bg = 
+                    unsafe { nn_mapDepth(pixel.bg, depth, LEGACY_COLORS) };
+                set_cell(id, x, y, char::from_u32(pixel.codepoint).unwrap_or_default(), fg, bg);
             }
         }
     }

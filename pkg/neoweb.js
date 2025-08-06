@@ -58,13 +58,13 @@ function getScreenElement(id) {
     return screens[id].element;
 }
 
-function setCell(id, x, y, val) {
+function setCell(id, x, y, val, fg, bg) {
     const screen = screens[id];
     x *= 8;
     y *= 16;
-    screen.ctx.fillStyle = 'black';
+    screen.ctx.fillStyle = '#' + bg.toString(16).padStart(6, "0");
     screen.ctx.fillRect(x, y, 8, 16);
-    screen.ctx.fillStyle = 'white';
+    screen.ctx.fillStyle = '#' + fg.toString(16).padStart(6, "0");
     screen.ctx.fillText(val, x, y);
 }
 
