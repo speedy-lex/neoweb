@@ -9,7 +9,7 @@
     container-type: inline-size;
     grid-template-columns: repeat(var(--cols), 1fr);
     grid-template-rows: repeat(var(--rows), 1fr);
-    font-size: calc(200cqi / var(--cols));
+    font-size: min(calc(200cqw / var(--cols)), calc(100cqh / var(--rows)));
     max-width: 100cqw;
     max-height: 100cqh;
     aspect-ratio: calc(var(--cols) / var(--rows) / 2);
