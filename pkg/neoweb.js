@@ -32,10 +32,10 @@ function createScreen(element, cols, rows) {
     child.classList.add("screen");
     child.tabIndex = 0;
     child.style = "--cols:" + cols + ";--rows:" + rows + ";"
-    for (let i = 0; i < cols * rows; i++) {
-        const cell = document.createElement("span");
-        cell.classList.add("cell");
-        child.appendChild(cell);
+    for (let i = 0; i < rows; i++) {
+        const row = document.createElement("div");
+        row.classList.add("row");
+        child.appendChild(row);
     }
     element.appendChild(child);
     screens.push({
@@ -50,9 +50,8 @@ function getScreenElement(id) {
     return screens[id].element;
 }
 
-function setCell(id, x, y, val) {
-    const i = x + 80 * y;
-    screens[id].element.children[i].innerText = val
+function setRow(id, y, str) {
+    screens[id].element.children[y].innerText = str
 }
 
 async function addDefaultComputer() {

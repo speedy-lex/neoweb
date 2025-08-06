@@ -18,8 +18,8 @@ mod context;
 
 #[link(wasm_import_module = "neoweb_console")]
 unsafe extern "C" {
-    #[link_name = "set_cell"]
-    fn _set_cell(id: i32, x: i32, y: i32, ch: i32);
+    #[link_name = "set_row"]
+    fn _set_row(id: i32, y: i32, ptr: *const u8, len: usize);
 }
 #[link(wasm_import_module = "neoweb_utils")]
 unsafe extern "C" {
@@ -27,8 +27,8 @@ unsafe extern "C" {
     fn debug_error(ptr: *const i8);
 }
 
-fn set_cell(id: usize, x: usize, y: usize, ch: char) {
-    unsafe { _set_cell(id as i32, x as i32, y as i32, ch as i32) };
+fn set_row(id: usize, y: usize, str: &str) {
+    unsafe { _set_row(id as i32, y as i32, str.as_ptr(), str.len()) };
 }
 
 static mut UNIVERSE: *mut nn_universe = null_mut();
@@ -317,11 +317,14 @@ pub unsafe extern "C" fn update_screen(screen: *mut nn_screen, id: usize) {
     assert_ne!(screen, null_mut());
 
     if unsafe { nn_isOn(screen) } {
+        let mut str = String::with_capacity(2 * 80); // most chars are ascii, so most of the time no realloc and worst case 1 realloc
         for y in 0..25 {
+            str.clear();
             for x in 0..80 {
-                let pixel = unsafe { nn_getPixel(screen, x as i32, y as i32) };
-                set_cell(id, x, y, char::from_u32(pixel.codepoint).unwrap_or_default());
+                let pixel = unsafe { nn_getPixel(screen, x, y as i32) };
+                str.push(char::from_u32(pixel.codepoint).unwrap_or_default());
             }
+            set_row(id, y, &str);
         }
     }
 }

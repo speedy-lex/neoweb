@@ -110,9 +110,12 @@ class Screen {
 }
 window.nwScreen = Screen;
 
-function wasmSetCell(id, x, y, val) {
-    const t = String.fromCodePoint(val);
-    setCell(id, x, y, t);
+const textDecoder = new TextDecoder('utf-8');
+
+function wasmSetRow(id, y, ptr, len) {
+    const mem = new Uint8Array(wasm.memory.buffer).slice(ptr, ptr + len);
+    const str = textDecoder.decode(mem);
+    setRow(id, y, str);
 }
 
 function tickComputer() {
@@ -150,7 +153,7 @@ async function runComputer() {
 
 const importObject = {
     neoweb_console: {
-        set_cell: wasmSetCell,
+        set_row: wasmSetRow,
     },
     neoweb_utils: {
         get_time: () => {

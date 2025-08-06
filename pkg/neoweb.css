@@ -5,10 +5,6 @@
     font-weight: 400;
 }
 .screen {
-    display: grid;
-    container-type: inline-size;
-    grid-template-columns: repeat(var(--cols), 1fr);
-    grid-template-rows: repeat(var(--rows), 1fr);
     font-size: min(calc(200cqw / var(--cols)), calc(100cqh / var(--rows)));
     max-width: 100cqw;
     max-height: 100cqh;
@@ -24,7 +20,7 @@
 .screen:focus {
     outline: 4px solid #44abff;
 }
-.cell {
+.row {
     overflow: visible;
     min-width: 0;
     min-height: 0;
