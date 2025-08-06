@@ -21,6 +21,9 @@
     font-weight: bold;
     white-space-collapse: preserve;
 }
+.screen:focus {
+    outline: 4px solid #44abff;
+}
 .cell {
     overflow: visible;
     min-width: 0;

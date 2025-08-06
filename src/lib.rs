@@ -6,7 +6,7 @@ use std::{
 };
 
 use neonucleus::ffi::{
-    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getError, nn_getPixel, nn_getRoomTemperature, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_rand, nn_removeHeat, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_tickComputer, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem, NN_STATE_BLACKOUT, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_SWITCH
+    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getComputerUserData, nn_getError, nn_getPixel, nn_getRoomTemperature, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_rand, nn_removeHeat, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_tickComputer, nn_universe, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem, NN_STATE_BLACKOUT, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_SWITCH
 };
 use neotar::Deserialize;
 
@@ -31,8 +31,7 @@ fn set_cell(id: usize, x: usize, y: usize, ch: char) {
     unsafe { _set_cell(id as i32, x as i32, y as i32, ch as i32) };
 }
 
-static mut COMPUTER: *mut nn_computer = null_mut();
-static mut SCREEN: *mut nn_screen = null_mut();
+static mut UNIVERSE: *mut nn_universe = null_mut();
 
 #[unsafe(no_mangle)]
 pub extern "C" fn init() {
@@ -43,29 +42,26 @@ pub extern "C" fn init() {
     let universe = unsafe { neonucleus::ffi::nn_newUniverse(get_context()) };
     assert_ne!(universe, null_mut());
     unsafe { nn_loadCoreComponentTables(universe) };
+    unsafe { UNIVERSE = universe };
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn new_computer() -> *mut nn_computer {
+    let universe = unsafe { UNIVERSE };
+    assert_ne!(universe, null_mut());
     let computer = unsafe {
         nn_newComputer(
             universe,
             c"test".as_ptr().cast_mut(),
             (&ARCH_TABLE as *const nn_architecture).cast_mut(),
-            null_mut(),
+            Box::into_raw(Box::new(1_i32)).cast(),
             1024 * 1024 * 64,
             16,
         )
     };
     assert_ne!(computer, null_mut());
-    unsafe { COMPUTER = computer };
 
-    let mut ctx = get_context();
-    let screen = unsafe { nn_newScreen(&raw mut ctx, 80, 25, 24, 16, 256) };
-    assert_ne!(screen, null_mut());
-    unsafe { SCREEN = screen };
-    unsafe { nn_setDepth(screen, 8) };
-    unsafe { nn_addKeyboard(screen, c"browser keyboard".as_ptr().cast_mut()) };
-    unsafe { nn_mountKeyboard(computer, c"browser keyboard".as_ptr().cast_mut(), 2) };
-    unsafe { nn_addScreen(computer, null_mut(), 2, screen) };
-
-    let mut gpu_ctrl = nn_gpuControl {
+    let mut gpu_ctrl: nn_gpuControl = nn_gpuControl {
         totalVRAM: 16 * 1024,
         maximumBufferCount: 64,
         defaultBufferWidth: 80,
@@ -82,7 +78,31 @@ pub extern "C" fn init() {
         energyPerVRAMChange: 0.0015,
     };
 
-    unsafe { nn_addGPU(computer, null_mut(), 3, &raw mut gpu_ctrl) };
+    unsafe { nn_addGPU(computer, null_mut(), 0, &raw mut gpu_ctrl) };
+    computer
+}
+
+/// # Safety
+/// computer must be valid
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn new_screen(computer: *mut nn_computer, add_kb: bool) -> *mut nn_screen {
+    assert_ne!(computer, null_mut());
+    let slot: &mut i32 = unsafe { &mut *(nn_getComputerUserData(computer).cast()) };
+
+    let mut ctx = get_context();
+    let screen = unsafe { nn_newScreen(&raw mut ctx, 80, 25, 24, 16, 256) };
+    assert_ne!(screen, null_mut());
+
+    unsafe { nn_setDepth(screen, 8) };
+    if add_kb {
+        unsafe { nn_addKeyboard(screen, c"browser keyboard".as_ptr().cast_mut()) };
+        unsafe { nn_mountKeyboard(computer, c"browser keyboard".as_ptr().cast_mut(), *slot) };
+    }
+    unsafe { nn_addScreen(computer, null_mut(), *slot, screen) };
+
+    *slot += 1;
+
+    screen
 }
 
 #[unsafe(no_mangle)]
@@ -94,6 +114,7 @@ pub extern "C" fn alloc_block(size: i32) -> *mut u8 {
 /// code and data must point to code_size and data_size bytes of memory allocated with alloc_block
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn load_eeprom(
+    computer: *mut nn_computer,
     code: *mut u8,
     code_size: i32,
     code_len: i32,
@@ -101,8 +122,8 @@ pub unsafe extern "C" fn load_eeprom(
     data_size: i32,
     data_len: i32,
 ) {
-    let computer = unsafe { COMPUTER };
     assert_ne!(computer, null_mut());
+    let slot: &mut i32 = unsafe { &mut *(nn_getComputerUserData(computer).cast()) };
     assert_ne!(code, null_mut());
 
     let opts = nn_veepromOptions {
@@ -134,7 +155,8 @@ pub unsafe extern "C" fn load_eeprom(
         )
     };
 
-    unsafe { nn_addEEPROM(computer, null_mut(), 0, generic_eeprom) };
+    unsafe { nn_addEEPROM(computer, null_mut(), *slot, generic_eeprom) };
+    *slot += 1;
 
     unsafe {
         dealloc(
@@ -155,9 +177,9 @@ pub unsafe extern "C" fn load_eeprom(
 /// # Safety
 /// ptr must point to size bytes of memory allocated with alloc_block
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn load_vfs(ptr: *mut u8, size: i32) {
-    let computer = unsafe { COMPUTER };
+pub unsafe extern "C" fn load_vfs(computer: *mut nn_computer, ptr: *mut u8, size: i32) {
     assert_ne!(computer, null_mut());
+    let slot: &mut i32 = unsafe { &mut *(nn_getComputerUserData(computer).cast()) };
 
     let bytes = unsafe { slice::from_raw_parts(ptr, size as usize) };
     let file = neotar::File::read(bytes).0;
@@ -222,16 +244,17 @@ pub unsafe extern "C" fn load_vfs(ptr: *mut u8, size: i32) {
             },
         )
     };
-    unsafe { nn_addFileSystem(computer, null_mut(), 1, vfs) };
+    unsafe { nn_addFileSystem(computer, null_mut(), *slot, vfs) };
+    *slot += 1;
     unsafe { dealloc(ptr, Layout::from_size_align(size as usize, 1).unwrap()) };
 }
 
 /// # Safety
 /// Perhaps
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn on_key(char: i32, code: i32, released: bool) {
-    let computer = unsafe { COMPUTER };
+pub unsafe extern "C" fn on_key(computer: *mut nn_computer, char: i32, code: i32, released: bool) {
     assert_ne!(computer, null_mut());
+
     unsafe {
         let mut values: [nn_value; 5] = [
             nn_values_cstring(if released {
@@ -248,12 +271,11 @@ pub unsafe extern "C" fn on_key(char: i32, code: i32, released: bool) {
     }
 }
 
+/// # Safety
+/// computer must be valid
 #[unsafe(no_mangle)]
-pub extern "C" fn tick() {
-    let computer = unsafe { COMPUTER };
+pub unsafe extern "C" fn tick(computer: *mut nn_computer) {
     assert_ne!(computer, null_mut());
-    let screen = unsafe { SCREEN };
-    assert_ne!(screen, null_mut());
 
     unsafe { nn_setEnergyInfo(computer, 5000.0, 5000.0) };
         
@@ -285,15 +307,6 @@ pub extern "C" fn tick() {
         }
         _ => {}
     }
-    if unsafe { nn_isOn(screen) } {
-        set_cell(0, 79, 24, 'x');
-        for y in 0..25 {
-            for x in 0..80 {
-                let pixel = unsafe { nn_getPixel(screen, x as i32, y as i32) };
-                set_cell(0, x, y, char::from_u32(pixel.codepoint).unwrap_or_default());
-            }
-        }
-    }
     let error = unsafe { nn_getError(computer) };
     if !error.is_null() {
         unsafe { debug_error(error.cast()) }
@@ -301,16 +314,34 @@ pub extern "C" fn tick() {
     }
 }
 
+/// # Safety
+/// screen must be valid
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn update_screen(screen: *mut nn_screen, id: usize) {
+    assert_ne!(screen, null_mut());
+
+    if unsafe { nn_isOn(screen) } {
+        for y in 0..25 {
+            for x in 0..80 {
+                let pixel = unsafe { nn_getPixel(screen, x as i32, y as i32) };
+                set_cell(id, x, y, char::from_u32(pixel.codepoint).unwrap_or_default());
+            }
+        }
+    }
+}
+
 #[cfg(debug_assertions)]
 fn panic_hook(info: &std::panic::PanicHookInfo) {
     unsafe { debug_error(c"PANIC".as_ptr()) };
-    let mut str = format!("{:?}", info.location());
-    str.push('\0');
-    let bytes = str.into_bytes();
-    unsafe { debug_error(bytes.as_ptr().cast()) };
-
-    let mut str = format!("{:?}", info.payload_as_str());
-    str.push('\0');
-    let bytes = str.into_bytes();
-    unsafe { debug_error(bytes.as_ptr().cast()) };
+    if let Some(location) = info.location() {
+        let mut str = format!("{location:?}");
+        str.push('\0');
+        let bytes = str.into_bytes();
+        unsafe { debug_error(bytes.as_ptr().cast()) };
+    }
+    if let Some(mut str) = info.payload_as_str().map(str::to_owned) {
+        str.push('\0');
+        let bytes = str.into_bytes();
+        unsafe { debug_error(bytes.as_ptr().cast()) };
+    }
 }

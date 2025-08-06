@@ -1,48 +1,3 @@
-function wasmSetCell(id, x, y, val) {
-    const t = String.fromCodePoint(val);
-    setCell(id, x, y, t);
-}
-
-async function fetchFileBytesCompressed(url) {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch file: ${response.status}`);
-    }
-
-    const decompressedStream = response.body.pipeThrough(new DecompressionStream("gzip"));
-
-    const arrayBuffer = await new Response(decompressedStream).arrayBuffer();
-    const byteArray = new Uint8Array(arrayBuffer);
-
-    return byteArray;
-}
-async function fetchFileBytes(url) {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch file: ${response.status}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const byteArray = new Uint8Array(arrayBuffer);
-
-    return byteArray;
-}
-
-function tickComputer() {
-    try {
-        wasm.tick()
-        requestAnimationFrame(tickComputer);
-    } catch(e) {
-        if (e instanceof WebAssembly.RuntimeError && e.message.includes("unreachable")) {
-            console.error("panic: " + e.message);
-        } else {
-            console.dir(e);
-        }
-    }
-}
-
 const ch_to_oc_map = {}
 ch_to_oc_map["a"] = 0x1E;
 ch_to_oc_map["b"] = 0x30;
@@ -106,34 +61,81 @@ ch_to_oc_map["End"] = 0xCF;
 ch_to_oc_map["PageUp"] = 0xC9;
 ch_to_oc_map["PageDown"] = 0xD1;
 
-document.onkeydown = function(e) {
-    e.preventDefault();
-    let key = e.key;
-    let null_key = String.fromCodePoint(0);
-    if (e.key == "Enter") { key = "\r" }
-    if (e.key == "Backspace") { key = "\b" }
-    if (e.key == "Tab") { key = "\t" }
-    if (e.key == "Meta") { return }
-    if (e.key.length > 1) { key = null_key }
-    wasm.on_key(key.charCodeAt(0), ch_to_oc_map[e.key] || 0, e.type == "keyup");
+let computers = [];
+
+export class Computer {
+    constructor() {
+        this.ptr = wasm.new_computer();
+    }
+    start_ticking() {
+        computers.push(this);
+    }
+    add_eeprom(bytes) {
+        let code = wasm.alloc_block(bytes.byteLength);
+        let data = wasm.alloc_block(1024);
+        const wasmMemory = new Uint8Array(wasm.memory.buffer, code, bytes.byteLength);
+        wasmMemory.set(bytes);
+        wasm.load_eeprom(this.ptr, code, bytes.byteLength, bytes.byteLength, data, 1024, 0);
+    }
+    add_vfs(bytes) {
+        let alloc = wasm.alloc_block(bytes.byteLength);
+        const wasmOpenos = new Uint8Array(wasm.memory.buffer, alloc, bytes.byteLength);
+        wasmOpenos.set(bytes);
+        wasm.load_vfs(this.ptr, alloc, bytes.byteLength);
+    }
 }
-document.onkeyup = document.onkeydown
+window.nwComputer = Computer;
+
+let screens = [];
+
+class Screen {
+    constructor(Computer, parent, addKeyboard) {
+        this.ptr = wasm.new_screen(Computer.ptr, addKeyboard);
+        this.id = createScreen(parent, 80, 25);
+        let element = getScreenElement(this.id);
+        element.onkeydown = function(e) {
+            e.preventDefault();
+            let key = e.key;
+            let null_key = String.fromCodePoint(0);
+            if (e.key == "Enter") { key = "\r" }
+            if (e.key == "Backspace") { key = "\b" }
+            if (e.key == "Tab") { key = "\t" }
+            if (e.key == "Meta") { return }
+            if (e.key.length > 1) { key = null_key }
+            wasm.on_key(Computer.ptr, key.charCodeAt(0), ch_to_oc_map[e.key] || 0, e.type == "keyup");
+        }
+        element.onkeyup = element.onkeydown;
+        screens.push(this)
+    }
+}
+window.nwScreen = Screen;
+
+function wasmSetCell(id, x, y, val) {
+    const t = String.fromCodePoint(val);
+    setCell(id, x, y, t);
+}
+
+function tickComputer() {
+    try {
+        for (const x in computers) {
+            wasm.tick(computers[x].ptr);
+        }
+        for (const x in screens) {
+            wasm.update_screen(screens[x].ptr, screens[x].id)
+        }
+        requestAnimationFrame(tickComputer);
+    } catch(e) {
+        if (e instanceof WebAssembly.RuntimeError && e.message.includes("unreachable")) {
+            console.error("panic: " + e.message);
+        } else {
+            console.dir(e);
+        }
+    }
+}
 
 async function runComputer() {
     try {
         wasm.init();
-        let eeprom = await fetchFileBytes("luaBios.lua");
-        let code = wasm.alloc_block(eeprom.byteLength);
-        let data = wasm.alloc_block(1024);
-        const wasmMemory = new Uint8Array(wasm.memory.buffer, code, eeprom.byteLength);
-        wasmMemory.set(eeprom);
-        wasm.load_eeprom(code, eeprom.byteLength, eeprom.byteLength, data, 1024, 0);
-
-        let openos = await fetchFileBytesCompressed("openos.ntar.gz");
-        let alloc = wasm.alloc_block(openos.byteLength);
-        const wasmOpenos = new Uint8Array(wasm.memory.buffer, alloc, openos.byteLength);
-        wasmOpenos.set(openos);
-        wasm.load_vfs(alloc, openos.byteLength);
 
         requestAnimationFrame(tickComputer);
     } catch(e) {
@@ -190,7 +192,6 @@ const importObject = {
     }
 };
 let wasm = undefined;
-createScreen(document.getElementById("container"), 80, 25);
 
 const response = await fetch("neoweb.wasm.gz");
 const decompressedStream = response.body.pipeThrough(new DecompressionStream("gzip"));
@@ -201,4 +202,4 @@ const result = await WebAssembly.instantiate(buffer, importObject);
 
 wasm = result.instance.exports;
 
-await runComputer(); // This should work now
+await runComputer();
