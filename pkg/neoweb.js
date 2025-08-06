@@ -28,12 +28,15 @@ async function fetchFileBytes(url) {
 }
 
 function createScreen(element, cols, rows) {
-    let child = document.createElement("canvas");
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("screen-wrapper");
+    wrapper.style = "--cols:" + cols + ";--rows:" + rows + ";";
+    const child = document.createElement("canvas");
     child.width = cols * 8;
     child.height = rows * 16;
     child.classList.add("screen");
     child.tabIndex = 0;
-    child.style += "--cols:" + cols + ";--rows:" + rows + ";"
+    wrapper.appendChild(child);
 
     const ctx = child.getContext('2d');
     ctx.font = "16px 'unscii-16', monospace";
@@ -43,10 +46,10 @@ function createScreen(element, cols, rows) {
     ctx.shadowColor = "transparent";
     ctx.fillRect(0, 0, child.width, child.height);
 
-    element.appendChild(child);
+    element.appendChild(wrapper);
 
     screens.push({
-        element: child,
+        element: wrapper,
         ctx: ctx,
         cols: cols,
         rows: rows,
@@ -69,9 +72,19 @@ function setCell(id, x, y, val, fg, bg) {
 }
 
 async function addDefaultComputer() {
-    let computer = new window.nwComputer();
-    new window.nwScreen(computer, document.getElementById('container'), 1);
+    const computer = new window.nwComputer();
+    const screen = new window.nwScreen(computer, document.getElementById('container'), 1);
     computer.add_eeprom(await fetchFileBytes('luaBios.lua'));
     computer.add_vfs(await fetchFileBytesCompressed('openos.ntar.gz'));
-    computer.start_ticking();
+    const screenElement = getScreenElement(screen.id);
+    const child = document.createElement("div");
+    child.innerText = "Click to run";
+    child.classList.add("screen-overlay");
+    screenElement.appendChild(child);
+    screenElement.onclick = () => {
+        const overlay = screenElement.getElementsByTagName("div")[0];
+        screenElement.removeChild(overlay);
+        computer.start_ticking();
+    };
+    screenElement.onfocus = screenElement.onclick;
 }

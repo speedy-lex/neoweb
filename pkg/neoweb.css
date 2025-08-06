@@ -3,15 +3,23 @@
     src: url('./unscii-16-full.woff') format('woff'), /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
             url('./unscii-16-full.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
 }
+.screen-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    aspect-ratio: calc(var(--cols) / var(--rows) / 2);
+}
 .screen {
-    width: 100cqw;
-    max-height: 100cqh;
+    width: 100%;
     object-fit: contain;
     object-position: left;
-    aspect-ratio: calc(var(--cols) / var(--rows) / 2);
     image-rendering: pixelated;
     image-rendering: crisp-edges;
 }
 .screen:focus {
     outline: 4px solid #44abff;
+}
+.screen-overlay {
+    color: white;
+    position: absolute;
 }
