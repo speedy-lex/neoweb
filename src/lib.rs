@@ -6,7 +6,7 @@ use std::{
 };
 
 use neonucleus::ffi::{
-    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getComputerUserData, nn_getDepth, nn_getError, nn_getPaletteColor, nn_getPixel, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mapColor, nn_mapDepth, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_removeHeat, nn_scrchr_t, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_setPixel, nn_tickComputer, nn_universe, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem, NN_STATE_BLACKOUT, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_SWITCH
+    nn_addEEPROM, nn_addFileSystem, nn_addGPU, nn_addKeyboard, nn_addScreen, nn_architecture, nn_computer, nn_eepromControl, nn_filesystemControl, nn_getComputerUserData, nn_getDepth, nn_getError, nn_getPixel, nn_getTemperature, nn_gpuControl, nn_isOn, nn_isOverheating, nn_loadCoreComponentTables, nn_mapDepth, nn_mountKeyboard, nn_newComputer, nn_newScreen, nn_pushSignal, nn_removeHeat, nn_scrchr_t, nn_screen, nn_setDepth, nn_setEnergyInfo, nn_setPixel, nn_tickComputer, nn_universe, nn_value, nn_values_cstring, nn_values_integer, nn_veepromOptions, nn_vfilesystemImageNode, nn_vfilesystemOptions, nn_volatileEEPROM, nn_volatileFilesystem, NN_STATE_BLACKOUT, NN_STATE_CLOSING, NN_STATE_REPEAT, NN_STATE_SWITCH
 };
 use neotar::Deserialize;
 

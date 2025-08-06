@@ -4,8 +4,7 @@
             url('./unscii-16-full.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
 }
 .screen {
-    width: 100%;
-    max-width: 100cqw;
+    width: 100cqw;
     max-height: 100cqh;
     object-fit: contain;
     object-position: left;
