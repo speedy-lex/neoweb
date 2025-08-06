@@ -2,31 +2,15 @@
     font-family: 'unscii-16';
     src: url('./unscii-16-full.woff') format('woff'), /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
             url('./unscii-16-full.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
-    font-weight: 400;
 }
 .screen {
-    display: grid;
-    container-type: inline-size;
-    grid-template-columns: repeat(var(--cols), 1fr);
-    grid-template-rows: repeat(var(--rows), 1fr);
-    font-size: min(calc(200cqw / var(--cols)), calc(100cqh / var(--rows)));
+    width: 100%;
     max-width: 100cqw;
     max-height: 100cqh;
     aspect-ratio: calc(var(--cols) / var(--rows) / 2);
-    white-space: nowrap;
-    background: black;
-    color: lightgray;
-    font-family: 'unscii-16', monospace;
-    font-synthesis: none;
-    font-weight: bold;
-    white-space-collapse: preserve;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 .screen:focus {
     outline: 4px solid #44abff;
-}
-.cell {
-    overflow: visible;
-    min-width: 0;
-    min-height: 0;
-    line-height: 1;
 }

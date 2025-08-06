@@ -28,18 +28,26 @@ async function fetchFileBytes(url) {
 }
 
 function createScreen(element, cols, rows) {
-    let child = document.createElement("div");
+    let child = document.createElement("canvas");
+    child.width = cols * 8;
+    child.height = rows * 16;
     child.classList.add("screen");
     child.tabIndex = 0;
-    child.style = "--cols:" + cols + ";--rows:" + rows + ";"
-    for (let i = 0; i < cols * rows; i++) {
-        const cell = document.createElement("span");
-        cell.classList.add("cell");
-        child.appendChild(cell);
-    }
+    child.style += "--cols:" + cols + ";--rows:" + rows + ";"
+
+    const ctx = child.getContext('2d');
+    ctx.font = "16px 'unscii-16', monospace";
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = 'black';
+    ctx.imageSmoothingEnabled = false;
+    ctx.shadowColor = "transparent";
+    ctx.fillRect(0, 0, child.width, child.height);
+
     element.appendChild(child);
+
     screens.push({
         element: child,
+        ctx: ctx,
         cols: cols,
         rows: rows,
     });
@@ -51,8 +59,13 @@ function getScreenElement(id) {
 }
 
 function setCell(id, x, y, val) {
-    const i = x + 80 * y;
-    screens[id].element.children[i].innerText = val
+    const screen = screens[id];
+    x *= 8;
+    y *= 16;
+    screen.ctx.fillStyle = 'black';
+    screen.ctx.fillRect(x, y, 8, 16);
+    screen.ctx.fillStyle = 'white';
+    screen.ctx.fillText(val, x, y);
 }
 
 async function addDefaultComputer() {
