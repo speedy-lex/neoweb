@@ -15,18 +15,15 @@
     aspect-ratio: calc(var(--cols) / var(--rows) / 2);
     white-space: nowrap;
     background: black;
-    color: lime;
+    color: lightgray;
     font-family: 'unscii-16', monospace;
     font-synthesis: none;
     font-weight: bold;
-    image-rendering: pixelated;
+    white-space-collapse: preserve;
 }
 .cell {
-    display: flex;
     overflow: visible;
     min-width: 0;
     min-height: 0;
-
-    white-space: nowrap;
     line-height: 1;
 }

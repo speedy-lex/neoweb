@@ -5,7 +5,7 @@ function createScreen(element, cols, rows) {
     child.classList.add("screen");
     child.style = "--cols:" + cols + ";--rows:" + rows + ";"
     for (let i = 0; i < cols * rows; i++) {
-        const cell = document.createElement("div");
+        const cell = document.createElement("span");
         cell.classList.add("cell");
         child.appendChild(cell);
     }
