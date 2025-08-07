@@ -87,13 +87,42 @@ export class Computer {
 }
 window.nwComputer = Computer;
 
+function createScreenElement(element, cols, rows) {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("screen-wrapper");
+    wrapper.style = "--cols:" + cols + ";--rows:" + rows + ";";
+    const child = document.createElement("canvas");
+    child.width = cols * 8;
+    child.height = rows * 16;
+    child.classList.add("screen");
+    child.tabIndex = 0;
+    wrapper.appendChild(child);
+
+    const ctx = child.getContext('2d');
+    ctx.font = "16px 'unscii-16', monospace";
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = 'black';
+    ctx.imageSmoothingEnabled = false;
+    ctx.shadowColor = "transparent";
+    ctx.fillRect(0, 0, child.width, child.height);
+
+    element.appendChild(wrapper);
+
+    return {
+        element: wrapper,
+        ctx: ctx,
+        cols: cols,
+        rows: rows,
+    };
+}
+
 let screens = [];
 
 class Screen {
     constructor(computer, parent, addKeyboard) {
         this.ptr = wasm.new_screen(computer.ptr, addKeyboard);
-        this.id = createScreen(parent, 80, 25);
-        let element = getScreenElement(this.id);
+        this.inner = createScreenElement(parent, 80, 25);
+        let element = this.inner.element;
         element.onkeydown = function(e) {
             e.preventDefault();
             let key = e.key;
@@ -110,14 +139,14 @@ class Screen {
         screens.push(this);
     }
     removeRunOverlay() {
-        const element = getScreenElement(this.id);
+        const element = this.inner.element;
         const overlay = element.getElementsByTagName("div")[0];
         element.removeChild(overlay);
         element.onclick = undefined;
         element.onfocus = undefined;
     }
     addRunOverlay(computer) {
-        const element = getScreenElement(this.id);
+        const element = this.inner.element;
         const child = document.createElement("div");
         child.innerText = "Click to run";
         child.classList.add("screen-overlay");
@@ -137,7 +166,14 @@ window.nwScreen = Screen;
 
 function wasmSetCell(id, x, y, val, fg, bg) {
     const t = String.fromCodePoint(val);
-    setCell(id, x, y, t, fg, bg);
+    
+    const screen = screens[id];
+    x *= 8;
+    y *= 16;
+    screen.ctx.fillStyle = '#' + bg.toString(16).padStart(6, "0");
+    screen.ctx.fillRect(x, y, 8, 16);
+    screen.ctx.fillStyle = '#' + fg.toString(16).padStart(6, "0");
+    screen.ctx.fillText(t, x, y);
 }
 
 function tickComputer() {
@@ -146,7 +182,7 @@ function tickComputer() {
             wasm.tick(computers[x].ptr);
         }
         for (const x in screens) {
-            wasm.update_screen(screens[x].ptr, screens[x].id)
+            wasm.update_screen(screens[x].ptr, x)
         }
         requestAnimationFrame(tickComputer);
     } catch(e) {
