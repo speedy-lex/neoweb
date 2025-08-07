@@ -87,12 +87,12 @@ pub extern "C" fn new_computer() -> *mut nn_computer {
 /// # Safety
 /// computer must be valid
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn new_screen(computer: *mut nn_computer, add_kb: bool) -> *mut nn_screen {
+pub unsafe extern "C" fn new_screen(computer: *mut nn_computer, add_kb: bool, width: i32, height: i32) -> *mut nn_screen {
     assert_ne!(computer, null_mut());
     let slot: &mut i32 = unsafe { &mut *(nn_getComputerUserData(computer).cast()) };
 
     let mut ctx = get_context();
-    let screen = unsafe { nn_newScreen(&raw mut ctx, 80, 25, 24, 16, 256) };
+    let screen = unsafe { nn_newScreen(&raw mut ctx, width, height, 24, 16, 256) };
     assert_ne!(screen, null_mut());
 
     unsafe { nn_setDepth(screen, 8) };
@@ -100,8 +100,8 @@ pub unsafe extern "C" fn new_screen(computer: *mut nn_computer, add_kb: bool) ->
         unsafe { nn_addKeyboard(screen, c"browser keyboard".as_ptr().cast_mut()) };
         unsafe { nn_mountKeyboard(computer, c"browser keyboard".as_ptr().cast_mut(), *slot) };
     }
-    for y in 0..25 {
-        for x in 0..80 {
+    for y in 0..height {
+        for x in 0..width {
             unsafe { nn_setPixel(screen, x, y, nn_scrchr_t {
                 codepoint: 0,
                 fg: 0xffffff,
@@ -326,19 +326,19 @@ pub unsafe extern "C" fn tick(computer: *mut nn_computer) {
 /// # Safety
 /// screen must be valid
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_screen(screen: *mut nn_screen, id: usize) {
+pub unsafe extern "C" fn update_screen(screen: *mut nn_screen, id: usize, width: i32, height: i32) {
     assert_ne!(screen, null_mut());
 
     if unsafe { nn_isOn(screen) } {
         let depth = unsafe { nn_getDepth(screen) };
-        for y in 0..25 {
-            for x in 0..80 {
-                let pixel = unsafe { nn_getPixel(screen, x as i32, y as i32) };
+        for y in 0..height {
+            for x in 0..width {
+                let pixel = unsafe { nn_getPixel(screen, x, y) };
                 let fg = 
                     unsafe { nn_mapDepth(pixel.fg, depth, LEGACY_COLORS) };
                 let bg = 
                     unsafe { nn_mapDepth(pixel.bg, depth, LEGACY_COLORS) };
-                set_cell(id, x, y, char::from_u32(pixel.codepoint).unwrap_or_default(), fg, bg);
+                set_cell(id, x as usize, y as usize, char::from_u32(pixel.codepoint).unwrap_or_default(), fg, bg);
             }
         }
     }

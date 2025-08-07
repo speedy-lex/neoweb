@@ -87,13 +87,13 @@ export class Computer {
 }
 window.nwComputer = Computer;
 
-function createScreenElement(element, cols, rows) {
+function createScreenElement(element, width, height) {
     const wrapper = document.createElement("div");
     wrapper.classList.add("screen-wrapper");
-    wrapper.style = "--cols:" + cols + ";--rows:" + rows + ";";
+    wrapper.style = "--cols:" + width + ";--rows:" + height + ";";
     const child = document.createElement("canvas");
-    child.width = cols * 8;
-    child.height = rows * 16;
+    child.width = width * 8;
+    child.height = height * 16;
     child.classList.add("screen");
     child.tabIndex = 0;
     wrapper.appendChild(child);
@@ -111,17 +111,17 @@ function createScreenElement(element, cols, rows) {
     return {
         element: wrapper,
         ctx: ctx,
-        cols: cols,
-        rows: rows,
+        width: width,
+        height: height,
     };
 }
 
 let screens = [];
 
 class Screen {
-    constructor(computer, parent, addKeyboard) {
-        this.ptr = wasm.new_screen(computer.ptr, addKeyboard);
-        this.inner = createScreenElement(parent, 80, 25);
+    constructor(computer, parent, addKeyboard, width, height) {
+        this.ptr = wasm.new_screen(computer.ptr, addKeyboard, width, height);
+        this.inner = createScreenElement(parent, width, height);
         let element = this.inner.element;
         element.onkeydown = function(e) {
             e.preventDefault();
@@ -182,7 +182,7 @@ function tickComputer() {
             wasm.tick(computers[x].ptr);
         }
         for (const x in screens) {
-            wasm.update_screen(screens[x].ptr, x)
+            wasm.update_screen(screens[x].ptr, x, screens[x].inner.width, screens[x].inner.height);
         }
         requestAnimationFrame(tickComputer);
     } catch(e) {
