@@ -66,6 +66,7 @@ let computers = [];
 export class Computer {
     constructor() {
         this.ptr = wasm.new_computer();
+        this.screens = [];
     }
     start_ticking() {
         computers.push(this);
@@ -89,8 +90,8 @@ window.nwComputer = Computer;
 let screens = [];
 
 class Screen {
-    constructor(Computer, parent, addKeyboard) {
-        this.ptr = wasm.new_screen(Computer.ptr, addKeyboard);
+    constructor(computer, parent, addKeyboard) {
+        this.ptr = wasm.new_screen(computer.ptr, addKeyboard);
         this.id = createScreen(parent, 80, 25);
         let element = getScreenElement(this.id);
         element.onkeydown = function(e) {
@@ -102,10 +103,34 @@ class Screen {
             if (e.key == "Tab") { key = "\t" }
             if (e.key == "Meta") { return }
             if (e.key.length > 1) { key = null_key }
-            wasm.on_key(Computer.ptr, key.charCodeAt(0), ch_to_oc_map[e.key] || 0, e.type == "keyup");
+            wasm.on_key(computer.ptr, key.charCodeAt(0), ch_to_oc_map[e.key] || 0, e.type == "keyup");
         }
         element.onkeyup = element.onkeydown;
-        screens.push(this)
+        computer.screens.push(this);
+        screens.push(this);
+    }
+    removeRunOverlay() {
+        const element = getScreenElement(this.id);
+        const overlay = element.getElementsByTagName("div")[0];
+        element.removeChild(overlay);
+        element.onclick = undefined;
+        element.onfocus = undefined;
+    }
+    addRunOverlay(computer) {
+        const element = getScreenElement(this.id);
+        const child = document.createElement("div");
+        child.innerText = "Click to run";
+        child.classList.add("screen-overlay");
+        element.appendChild(child);
+        element.onclick = () => {
+            if (computer != null) {
+                for (const i in computer.screens) {
+                    computer.screens[i].removeRunOverlay();
+                }
+                computer.start_ticking();
+            }
+        };
+        element.onfocus = element.onclick;
     }
 }
 window.nwScreen = Screen;

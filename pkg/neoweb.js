@@ -76,15 +76,5 @@ async function addDefaultComputer() {
     const screen = new window.nwScreen(computer, document.getElementById('container'), 1);
     computer.add_eeprom(await fetchFileBytes('luaBios.lua'));
     computer.add_vfs(await fetchFileBytesCompressed('openos.ntar.gz'));
-    const screenElement = getScreenElement(screen.id);
-    const child = document.createElement("div");
-    child.innerText = "Click to run";
-    child.classList.add("screen-overlay");
-    screenElement.appendChild(child);
-    screenElement.onclick = () => {
-        const overlay = screenElement.getElementsByTagName("div")[0];
-        screenElement.removeChild(overlay);
-        computer.start_ticking();
-    };
-    screenElement.onfocus = screenElement.onclick;
+    screen.addRunOverlay(computer);
 }
