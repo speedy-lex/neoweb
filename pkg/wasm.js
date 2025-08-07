@@ -49,6 +49,7 @@ ch_to_oc_map["\\"] = 0x2B;
 ch_to_oc_map["]"] = 0x1B;
 ch_to_oc_map["`"] = 0x29;
 ch_to_oc_map["Backspace"] = 0x0E;
+ch_to_oc_map["Tab"] = 0x0F;
 ch_to_oc_map["Shift"] = 0x2A;
 ch_to_oc_map["Control"] = 0x1D;
 ch_to_oc_map["ArrowRight"] = 0xCD;
