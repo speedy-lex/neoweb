@@ -167,7 +167,7 @@ window.nwScreen = Screen;
 function wasmSetCell(id, x, y, val, fg, bg) {
     const t = String.fromCodePoint(val);
     
-    const screen = screens[id];
+    const screen = screens[id].inner;
     x *= 8;
     y *= 16;
     screen.ctx.fillStyle = '#' + bg.toString(16).padStart(6, "0");
