@@ -25,9 +25,9 @@ async function fetchFileBytes(url) {
     return byteArray;
 }
 
-async function addDefaultComputer() {
+async function addDefaultComputer(parent) {
     const computer = new window.nwComputer();
-    const screen = new window.nwScreen(computer, document.getElementById('container'), 1, 80, 25);
+    const screen = new window.nwScreen(computer, parent, 1, 80, 25);
     computer.add_eeprom(await fetchFileBytes('luaBios.lua'));
     computer.add_vfs(await fetchFileBytesCompressed('openos.ntar.gz'));
     screen.addRunOverlay(computer);
