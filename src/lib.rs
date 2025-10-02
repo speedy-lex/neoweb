@@ -1,5 +1,3 @@
-#![feature(panic_payload_as_str)]
-
 use core::slice;
 use std::{
     alloc::{alloc, dealloc, Layout}, ptr::null_mut
@@ -301,6 +299,7 @@ pub unsafe extern "C" fn tick(computer: *mut nn_computer) {
     }
 
     let state = unsafe { nn_tickComputer(computer) };
+    #[allow(non_snake_case)] // this lint is just wrong here??
     match state {
         NN_STATE_SWITCH => {
             unsafe { debug_log(c"state switch".as_ptr()) };

@@ -31,4 +31,5 @@ async function addDefaultComputer(parent) {
     computer.add_eeprom(await fetchFileBytes('luaBios.lua'));
     computer.add_vfs(await fetchFileBytesCompressed('openos.ntar.gz'));
     screen.addRunOverlay(computer);
+    return computer;
 }
